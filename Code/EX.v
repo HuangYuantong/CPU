@@ -13,9 +13,11 @@ module EX(
     output wire [3:0] data_sram_wen,
     output wire [31:0] data_sram_addr,
     output wire [31:0] data_sram_wdata,
-
-    //EX∑µªÿ÷¡IDµƒforwarding
-    output wire [37:0] ex_to_id_forwarding
+     //EX??????ID??forwarding
+    output wire [`EX_TO_ID_WD-1:0] ex_to_id_forwarding,
+   
+    output wire stallreq_for_ex,
+    output wire stall_id_stop    //to id
 );
 
     reg [`ID_TO_EX_WD-1:0] id_to_ex_bus_r;
@@ -95,13 +97,132 @@ module EX(
         rf_waddr,       // 36:32
         ex_result       // 31:0
     };
-
-    //EX∑µªÿ÷¡IDµƒforwarding
+     //EX??????ID??forwarding
     assign ex_to_id_forwarding = {
         rf_we,          // 37
         rf_waddr,       // 36:32
         ex_result       // 31:0
     };
+     //load and store instructions
+    assign stall_id_stop = data_ram_en;   //tell "id" to stall if this instruction is a load or store
+
+    assign data_sram_en = data_ram_en;
+    assign data_sram_wen = (data_ram_wen == 4'b0000) ? 4'b0000: 4'b11111;    
+    assign data_sram_addr = alu_result;
+    assign data_sram_wdata = data_ram_en?rf_rdata2:32'b0;;
+
+    //
+
+    //stall part start
+    assign stallreq_for_ex = `NoStop;
+
+    //stall part end
+
+    // MUL part
+    wire [63:0] mul_result;
+    wire mul_signed; // ÊúâÁ¨¶Âè∑‰πòÊ≥ïÊ†áËÆ?
+
+    mul u_mul(
+    	.clk        (clk            ),
+        .resetn     (~rst           ),
+        .mul_signed (mul_signed     ),
+        .ina        (      ), // ‰πòÊ≥ïÊ∫êÊìç‰ΩúÊï∞1
+        .inb        (      ), // ‰πòÊ≥ïÊ∫êÊìç‰ΩúÊï∞2
+        .result     (mul_result     ) // ‰πòÊ≥ïÁªìÊûú 64bit
+    );
+
+    // DIV part
+    wire [63:0] div_result;
+    wire inst_div, inst_divu;
+    wire div_ready_i;
+    reg stallreq_for_div;
+    assign stallreq_for_ex = stallreq_for_div;
+
+    reg [31:0] div_opdata1_o;
+    reg [31:0] div_opdata2_o;
+    reg div_start_o;
+    reg signed_div_o;
+
+    div u_div(
+    	.rst          (rst          ),
+        .clk          (clk          ),
+        .signed_div_i (signed_div_o ),
+        .opdata1_i    (div_opdata1_o    ),
+        .opdata2_i    (div_opdata2_o    ),
+        .start_i      (div_start_o      ),
+        .annul_i      (1'b0      ),
+        .result_o     (div_result     ), // Èô§Ê≥ïÁªìÊûú 64bit
+        .ready_o      (div_ready_i      )
+    );
+
+    always @ (*) begin
+        if (rst) begin
+            stallreq_for_div = `NoStop;
+            div_opdata1_o = `ZeroWord;
+            div_opdata2_o = `ZeroWord;
+            div_start_o = `DivStop;
+            signed_div_o = 1'b0;
+        end
+        else begin
+            stallreq_for_div = `NoStop;
+            div_opdata1_o = `ZeroWord;
+            div_opdata2_o = `ZeroWord;
+            div_start_o = `DivStop;
+            signed_div_o = 1'b0;
+            case ({inst_div,inst_divu})
+                2'b10:begin
+                    if (div_ready_i == `DivResultNotReady) begin
+                        div_opdata1_o = rf_rdata1;
+                        div_opdata2_o = rf_rdata2;
+                        div_start_o = `DivStart;
+                        signed_div_o = 1'b1;
+                        stallreq_for_div = `Stop;
+                    end
+                    else if (div_ready_i == `DivResultReady) begin
+                        div_opdata1_o = rf_rdata1;
+                        div_opdata2_o = rf_rdata2;
+                        div_start_o = `DivStop;
+                        signed_div_o = 1'b1;
+                        stallreq_for_div = `NoStop;
+                    end
+                    else begin
+                        div_opdata1_o = `ZeroWord;
+                        div_opdata2_o = `ZeroWord;
+                        div_start_o = `DivStop;
+                        signed_div_o = 1'b0;
+                        stallreq_for_div = `NoStop;
+                    end
+                end
+                2'b01:begin
+                    if (div_ready_i == `DivResultNotReady) begin
+                        div_opdata1_o = rf_rdata1;
+                        div_opdata2_o = rf_rdata2;
+                        div_start_o = `DivStart;
+                        signed_div_o = 1'b0;
+                        stallreq_for_div = `Stop;
+                    end
+                    else if (div_ready_i == `DivResultReady) begin
+                        div_opdata1_o = rf_rdata1;
+                        div_opdata2_o = rf_rdata2;
+                        div_start_o = `DivStop;
+                        signed_div_o = 1'b0;
+                        stallreq_for_div = `NoStop;
+                    end
+                    else begin
+                        div_opdata1_o = `ZeroWord;
+                        div_opdata2_o = `ZeroWord;
+                        div_start_o = `DivStop;
+                        signed_div_o = 1'b0;
+                        stallreq_for_div = `NoStop;
+                    end
+                end
+                default:begin
+                end
+            endcase
+        end
+    end
+
+    // mul_result Âí? div_result ÂèØ‰ª•Áõ¥Êé•‰ΩøÁî®
     
     
 endmodule

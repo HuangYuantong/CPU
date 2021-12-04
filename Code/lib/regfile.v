@@ -1,14 +1,14 @@
 `include "defines.vh"
 module regfile(
     input wire clk,
-    input wire [4:0] raddr1,    //read: register1's address
-    output wire [31:0] rdata1,  //read: output register1's data
+    input wire [4:0] raddr1,
+    output wire [31:0] rdata1,
     input wire [4:0] raddr2,
     output wire [31:0] rdata2,
     
-    input wire we,              //write: enable
-    input wire [4:0] waddr,     //write: target address
-    input wire [31:0] wdata     //write: input data
+    input wire we,
+    input wire [4:0] waddr,
+    input wire [31:0] wdata
 );
     reg [31:0] reg_array [31:0];
     // write
