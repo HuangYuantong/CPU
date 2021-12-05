@@ -29,14 +29,17 @@ module mycpu_core(
     wire [`DATA_SRAM_WD-1:0] ex_dt_sram_bus;
     wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus;
     wire [`StallBus-1:0] stall;
-    // EX,MEM??????ID??forwarding
-    wire [`EX_TO_ID_WD-1:0] ex_to_id_forwarding;
-    wire [`MEM_TO_ID_WD-1:0] mem_to_id_forwarding;
-    wire [`WB_TO_ID_WD-1:0] wb_to_id_forwarding;
-     //stall
-    wire stallreq_id_stop;
+
+    wire [`EX_TO_MEM_WD-1:0] ex_to_id_bus;  //ex-->id
+
+    wire [`MEM_TO_WB_WD-1:0] mem_to_id_bus; //mem-->id
+
+    wire [`WB_TO_RF_WD-1:0] wb_to_id_bus;  //wb-->id
+
+    //stall
+    wire stallreq;
     wire stallreq_for_ex;
-    wire stall_id_stop;
+    wire stall_en;
 
     IF u_IF(
     	.clk             (clk             ),
@@ -55,17 +58,16 @@ module mycpu_core(
     	.clk             (clk             ),
         .rst             (rst             ),
         .stall           (stall           ),
-        .stallreq_id_stop(stallreq_id_stop        ),
+        .stallreq        (stallreq        ),
         .if_to_id_bus    (if_to_id_bus    ),
         .inst_sram_rdata (inst_sram_rdata ),
         .wb_to_rf_bus    (wb_to_rf_bus    ),
         .id_to_ex_bus    (id_to_ex_bus    ),
         .br_bus          (br_bus          ),
-        // EX,MEM??????ID??forwarding
-        .ex_to_id_forwarding(ex_to_id_forwarding),
-        .mem_to_id_forwarding(mem_to_id_forwarding),
-        .wb_to_id_forwarding(wb_to_id_forwarding),
-        .stall_id_stop       (stall_id_stop        )
+        .ex_to_id_bus    (ex_to_id_bus    ),
+        .mem_to_id_bus   (mem_to_id_bus   ),
+        .wb_to_id_bus    (wb_to_id_bus    ),
+        .stall_en        (stall_en        )
     );
 
     EX u_EX(
@@ -78,10 +80,9 @@ module mycpu_core(
         .data_sram_wen   (data_sram_wen   ),
         .data_sram_addr  (data_sram_addr  ),
         .data_sram_wdata (data_sram_wdata ),
-        // EX??????ID??forwarding
-        .ex_to_id_forwarding(ex_to_id_forwarding),
+        .ex_to_id_bus    (ex_to_id_bus    ),
         .stallreq_for_ex (stallreq_for_ex ),
-        .stall_id_stop   (stall_id_stop        )
+        .stall_en        (stall_en        )
     );
 
     MEM u_MEM(
@@ -91,8 +92,7 @@ module mycpu_core(
         .ex_to_mem_bus   (ex_to_mem_bus   ),
         .data_sram_rdata (data_sram_rdata ),
         .mem_to_wb_bus   (mem_to_wb_bus   ),
-        // MEM??????ID??forwarding
-        .mem_to_id_forwarding(mem_to_id_forwarding)
+        .mem_to_id_bus   (mem_to_id_bus   )
     );
     
     WB u_WB(
@@ -105,14 +105,14 @@ module mycpu_core(
         .debug_wb_rf_wen   (debug_wb_rf_wen   ),
         .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
         .debug_wb_rf_wdata (debug_wb_rf_wdata ),
-        .wb_to_id_forwarding(wb_to_id_forwarding)
+        .wb_to_id_bus      (wb_to_id_bus      )
     );
 
     CTRL u_CTRL(
-    	.rst   (rst   ),
-    	.stallreq_id_stop   (stallreq_id_stop        ),
+    	.rst                (rst             ),
+        .stallreq           (stallreq        ),
         .stallreq_for_ex    (stallreq_for_ex ),
-        .stall (stall )
+        .stall              (stall           )
     );
     
 endmodule

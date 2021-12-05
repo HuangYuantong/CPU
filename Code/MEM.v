@@ -6,11 +6,12 @@ module MEM(
     input wire [`StallBus-1:0] stall,
 
     input wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
-    input wire [31:0] data_sram_rdata,
+    input wire [31:0] data_sram_rdata,  //read from memory
 
     output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
-    //
-    output wire [`MEM_TO_ID_WD-1:0] mem_to_id_forwarding
+
+    //data correlation
+    output wire [`MEM_TO_WB_WD-1:0] mem_to_id_bus
 );
 
     reg [`EX_TO_MEM_WD-1:0] ex_to_mem_bus_r;
@@ -50,8 +51,8 @@ module MEM(
         ex_result       // 31:0
     } =  ex_to_mem_bus_r;
 
-
-    assign mem_result =data_ram_en? data_sram_rdata:32'b0;
+    assign mem_result = data_sram_rdata;
+    
     assign rf_wdata = sel_rf_res ? mem_result : ex_result;
 
     assign mem_to_wb_bus = {
@@ -60,13 +61,13 @@ module MEM(
         rf_waddr,   // 36:32
         rf_wdata    // 31:0
     };
-    //MEM??????ID??forwarding
-     assign mem_to_id_forwarding = {
-        rf_we,      // 37
-        rf_waddr,   // 36:32
-        rf_wdata    // 31:0
-    };
 
+    assign mem_to_id_bus = {
+        mem_pc,    //41:38
+        rf_we,     //37
+        rf_waddr,  //36:32
+        rf_wdata   //31:0
+    };
 
 
 endmodule

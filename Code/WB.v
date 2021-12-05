@@ -13,8 +13,9 @@ module WB(
     output wire [3:0] debug_wb_rf_wen,
     output wire [4:0] debug_wb_rf_wnum,
     output wire [31:0] debug_wb_rf_wdata,
-    //
-    output wire [`WB_TO_ID_WD-1:0] wb_to_id_forwarding 
+
+    //data correlation
+    output wire [`WB_TO_RF_WD-1:0] wb_to_id_bus
 );
 
     reg [`MEM_TO_WB_WD-1:0] mem_to_wb_bus_r;
@@ -52,13 +53,13 @@ module WB(
         rf_waddr,
         rf_wdata
     };
-   ///
-    assign wb_to_id_forwarding = {
-        rf_we,      // 37
-        rf_waddr,   // 36:32
-        rf_wdata    // 31:0
+
+    assign wb_to_id_bus = {
+        rf_we,
+        rf_waddr,
+        rf_wdata
     };
-    
+
     assign debug_wb_pc = wb_pc;
     assign debug_wb_rf_wen = {4{rf_we}};
     assign debug_wb_rf_wnum = rf_waddr;
