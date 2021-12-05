@@ -63,8 +63,8 @@ module EX(
         rf_we,          // 70
         rf_waddr,       // 69:65
         sel_rf_res,     // 64
-        rf_rdata1,         // 63:32
-        rf_rdata2          // 31:0
+        rf_rdata1,      // 63:32
+        rf_rdata2       // 31:0
     } = id_to_ex_bus_r;
 
     wire [31:0] imm_sign_extend, imm_zero_extend, sa_zero_extend;
@@ -100,7 +100,7 @@ module EX(
     assign data_sram_addr = alu_result;
     assign data_sram_wdata = (data_ram_wen == 4'b1111) ? rf_rdata2:32'b0;
 
-    //
+// MUL and DIV
 
     //stall part start
     assign stallreq_for_ex = `NoStop;
@@ -129,15 +129,15 @@ module EX(
 
     // MUL part
     wire [63:0] mul_result;
-    wire mul_signed; // 鏈夌鍙蜂箻娉曟爣璁?
+    wire mul_signed;    // 有符号乘法标志
 
     mul u_mul(
-    	.clk        (clk            ),
-        .resetn     (~rst           ),
-        .mul_signed (mul_signed     ),
-        .ina        (      ), // 涔樻硶婧愭搷浣滄暟1
-        .inb        (      ), // 涔樻硶婧愭搷浣滄暟2
-        .result     (mul_result     ) // 涔樻硶缁撴灉 64bit
+    	.clk        (clk        ),
+        .resetn     (~rst       ),
+        .mul_signed (mul_signed ),
+        .ina        (           ), // 乘法源操作数1
+        .inb        (           ), // 乘法源操作数2
+        .result     (mul_result )  // 乘法结果 64bit
     );
 
     // DIV part
@@ -156,12 +156,12 @@ module EX(
     	.rst          (rst          ),
         .clk          (clk          ),
         .signed_div_i (signed_div_o ),
-        .opdata1_i    (div_opdata1_o    ),
-        .opdata2_i    (div_opdata2_o    ),
-        .start_i      (div_start_o      ),
-        .annul_i      (1'b0      ),
-        .result_o     (div_result     ), // 闄ゆ硶缁撴灉 64bit
-        .ready_o      (div_ready_i      )
+        .opdata1_i    (div_opdata1_o),
+        .opdata2_i    (div_opdata2_o),
+        .start_i      (div_start_o  ),
+        .annul_i      (1'b0         ),
+        .result_o     (div_result   ), // 除法结果 64bit
+        .ready_o      (div_ready_i  )
     );
 
     always @ (*) begin
@@ -231,7 +231,7 @@ module EX(
         end
     end
 
-    // mul_result 鍜? div_result 鍙互鐩存帴浣跨敤
-    
+    // "mul_result" and "div_result" can be directly use  
+// end 
     
 endmodule
