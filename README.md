@@ -14,6 +14,7 @@
     * 若是和rt寄存器为同一个（rdata2发生数据相关），则将rdata22赋值为相应的ex/mem_forwarding_wdata（例如subu指令，rt就是第二个源寄存器）
     * 否则 rdata11=rdata1，rdata22=rdata2
 
-### 12.6：通过point9~15
+### 12.6：通过point9~36
 * 添加了指令inst_slti、inst_sltiu，通过point9~12
 * 添加了指令inst_j、inst_add，通过point13~15
+* 添加了指令inst_addi、inst_sub、inst_and、inst_andi、inst_nor、inst_xori、inst_sllv、inst_sra、inst_srav、inst_srl、inst_srlv,inst_bgez，通过point16~36
