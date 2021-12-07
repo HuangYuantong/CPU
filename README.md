@@ -21,6 +21,10 @@
     * wire inst_or , inst_lw ,  inst_xor;  
     * wire inst_sltu,inst_bne;
 3. 添加流水线在ID段的周期暂停(lw指令后)：stallreg_id_stop;
+### 12.5：通过point8
+1. 添加指令：
+    * wire inst_sw;
+2.添加id_stop(id段暂停作为判断)用来顺势延长指令执行周期
 ### 12.6：通过point9~36
 * 添加了指令inst_slti、inst_sltiu，通过point9~12
 * 添加了指令inst_j、inst_add，通过point13~15
