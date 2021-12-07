@@ -24,6 +24,7 @@
 ### 12.5：通过point8
 1. 添加指令：
     * wire inst_sw;
+    
 2.添加id_stop(id段暂停作为判断)用来顺势延长指令执行周期
 ### 12.6：通过point9~36
 * 添加了指令inst_slti、inst_sltiu，通过point9~12
