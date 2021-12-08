@@ -30,11 +30,11 @@ module mycpu_core(
     wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus;
     wire [`StallBus-1:0] stall;
 
-    wire [`EX_TO_MEM_WD-1:0] ex_to_id_bus;  //ex-->id
+    wire [`EX_TO_MEM_WD-1:0] ex_to_id_forwarding;  //ex-->id
 
-    wire [`MEM_TO_WB_WD-1:0] mem_to_id_bus; //mem-->id
+    wire [`MEM_TO_WB_WD-1:0] mem_to_id_forwarding; //mem-->id
 
-    wire [`WB_TO_RF_WD-1:0] wb_to_id_bus;  //wb-->id
+    wire [`WB_TO_RF_WD-1:0] wb_to_id_forwarding;  //wb-->id
 
     //stall
     wire stallreq;
@@ -64,9 +64,9 @@ module mycpu_core(
         .wb_to_rf_bus    (wb_to_rf_bus    ),
         .id_to_ex_bus    (id_to_ex_bus    ),
         .br_bus          (br_bus          ),
-        .ex_to_id_bus    (ex_to_id_bus    ),
-        .mem_to_id_bus   (mem_to_id_bus   ),
-        .wb_to_id_bus    (wb_to_id_bus    ),
+        .ex_to_id_forwarding    (ex_to_id_forwarding    ),
+        .mem_to_id_forwarding   (mem_to_id_forwarding   ),
+        .wb_to_id_forwarding    (wb_to_id_forwarding    ),
         .stall_en        (stall_en        )
     );
 
@@ -80,7 +80,7 @@ module mycpu_core(
         .data_sram_wen   (data_sram_wen   ),
         .data_sram_addr  (data_sram_addr  ),
         .data_sram_wdata (data_sram_wdata ),
-        .ex_to_id_bus    (ex_to_id_bus    ),
+        .ex_to_id_forwarding    (ex_to_id_forwarding    ),
         .stallreq_for_ex (stallreq_for_ex ),
         .stall_en        (stall_en        )
     );
@@ -92,7 +92,7 @@ module mycpu_core(
         .ex_to_mem_bus   (ex_to_mem_bus   ),
         .data_sram_rdata (data_sram_rdata ),
         .mem_to_wb_bus   (mem_to_wb_bus   ),
-        .mem_to_id_bus   (mem_to_id_bus   )
+        .mem_to_id_forwarding   (mem_to_id_forwarding   )
     );
     
     WB u_WB(
@@ -105,7 +105,7 @@ module mycpu_core(
         .debug_wb_rf_wen   (debug_wb_rf_wen   ),
         .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
         .debug_wb_rf_wdata (debug_wb_rf_wdata ),
-        .wb_to_id_bus      (wb_to_id_bus      )
+        .wb_to_id_forwarding      (wb_to_id_forwarding      )
     );
 
     CTRL u_CTRL(
