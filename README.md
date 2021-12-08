@@ -29,5 +29,5 @@
 * 添加了指令inst_slti、inst_sltiu，通过point9~12
 * 添加了指令inst_j、inst_add，通过point13~15
 * 添加了指令inst_addi、inst_sub、inst_and、inst_andi、inst_nor、inst_xori、inst_sllv、inst_sra、inst_srav、inst_srl、inst_srlv,inst_bgez，通过point16~36
-### 12.7：通过point37~43
+### 12.8：通过point37~43
 * 添加了指令inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr;通过point37~43
