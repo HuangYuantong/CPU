@@ -4,7 +4,7 @@
 **编码格式为：GB 2312，换行符为：CRLF**
 
 ## 更新日志
-### 11.27：完成EX、MEM段返回至ID段的连线：
+### 11.27：完成EX、MEM段返回至ID段的连线
 1. 在EX、MEM分别output wire [37:0] ex/mem_to_id_forwarding。含有：rf_we、rf_waddr、ex_result
 2. 在ID中用input wire [37:0] ex/mem_to_id_forwarding接收，并拆为wire ex/mem_forwarding_we、ex/mem_forwarding_waddr、ex/mem_forwarding_wdata
 3. 在mycpu_core.v中加入相关连接
@@ -21,11 +21,6 @@
     * wire inst_or , inst_lw ,  inst_xor;  
     * wire inst_sltu,inst_bne;
 3. 添加流水线在ID段的周期暂停(lw指令后)：stallreg_id_stop;
-<<<<<<< Updated upstream
-### 12.5：通过第八个点：
-1. 在ID段添加指令：inst_sw,inst_slt;
-2. 在EX段对data_sram_wdata赋值
-=======
 ### 12.5：通过point8
 1. 添加指令：
     * wire inst_sw;  
