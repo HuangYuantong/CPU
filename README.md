@@ -21,6 +21,19 @@
     * wire inst_or , inst_lw ,  inst_xor;  
     * wire inst_sltu,inst_bne;
 3. 添加流水线在ID段的周期暂停(lw指令后)：stallreg_id_stop;
+<<<<<<< Updated upstream
 ### 12.5：通过第八个点：
 1. 在ID段添加指令：inst_sw,inst_slt;
 2. 在EX段对data_sram_wdata赋值
+=======
+### 12.5：通过point8
+1. 添加指令：
+    * wire inst_sw;  
+2.添加id_stop(id段暂停作为判断)用来顺势延长指令执行周期
+### 12.6：通过point9~36
+* 添加了指令inst_slti、inst_sltiu，通过point9~12
+* 添加了指令inst_j、inst_add，通过point13~15
+* 添加了指令inst_addi、inst_sub、inst_and、inst_andi、inst_nor、inst_xori、inst_sllv、inst_sra、inst_srav、inst_srl、inst_srlv,inst_bgez，通过point16~36
+### 12.8：通过point37-43
+* 添加了指令inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr;通过了point37-43
+>>>>>>> Stashed changes
