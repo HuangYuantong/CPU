@@ -11,7 +11,7 @@ module MEM(
     output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
 
     //data correlation
-    output wire [`MEM_TO_WB_WD-1:0] mem_to_id_bus
+    output wire [`MEM_TO_WB_WD-1:0] mem_to_id_forwarding
 );
 
     reg [`EX_TO_MEM_WD-1:0] ex_to_mem_bus_r;
@@ -62,7 +62,7 @@ module MEM(
         rf_wdata    // 31:0
     };
 
-    assign mem_to_id_bus = {
+    assign mem_to_id_forwarding = {
         mem_pc,    //41:38
         rf_we,     //37
         rf_waddr,  //36:32

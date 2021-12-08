@@ -15,7 +15,7 @@ module EX(
     output wire [31:0] data_sram_wdata,
 
     //data correlation
-    output wire [`EX_TO_MEM_WD-1:0] ex_to_id_bus,
+    output wire [`EX_TO_MEM_WD-1:0] ex_to_id_forwarding,
 
     //stall 
     output wire stallreq_for_ex,
@@ -117,7 +117,7 @@ module EX(
         ex_result       // 31:0
     };
 
-    assign ex_to_id_bus = {
+    assign ex_to_id_forwarding = {
         ex_pc,          // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -129,7 +129,7 @@ module EX(
 
     // MUL part
     wire [63:0] mul_result;
-    wire mul_signed; // 有符号乘法标�?
+    wire mul_signed; // 有符号乘法标�?
 
     mul u_mul(
     	.clk        (clk            ),
@@ -231,7 +231,7 @@ module EX(
         end
     end
 
-    // mul_result �? div_result 可以直接使用
+    // mul_result �? div_result 可以直接使用
     
     
 endmodule
