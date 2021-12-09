@@ -47,27 +47,3 @@
     * 在ID的EX准备阶段：将PC->reg1、32'b8->reg2分别接通，并将ALU功能选为“op_add”
     * 在ID的MEM准备阶段：选择信号“sel_rf_dst[2]”，将结果存入No.31号寄存器
 3. 添加inst_jalr指令，通过point43
-
-### 12.9：添加了HI、LO寄存器，及其forwarding
-1. hilo寄存器位于regfile中，有各自的hi_we、lo_we写使能信号
-2. 通过拓展ID_TO_EX_WD、EX_TO_MEM_WD、MEM_TO_WB_WD、WB_TO_RF_WD（都增加64+2位），完成hilo写使能信号及值在流水线中传递
-3. 解决了hilo的RAW数据冲突。对于forwarding：
-    + 因为hilo在hi_we、lo_we为1时即为需要写操作无需外加地址判断，所以同步拓宽的ex_to_id_forwarding、mem_to_id_forwarding同样是增加64+2位
-    + 在ID段通过以下代码进行forwarding数据前传:
-    
-            assign selected_hi_rdata = forwarding_ex_hi_we ? forwarding_ex_hi_result
-                                : forwarding_mem_hi_we ? forwarding_mem_hi_result
-                                : wb_hi_we ? wb_hi_wdata
-                                : hi_rdata;
-    + 因此selected_hi/lo_rdata为ID段向后传递的数据
-
-4. 添加了move移动指令的实现机制：
-    1. 在ID中添加4位信号move_sourse。0~3位依次表示源操作数为rs、rt、hi、lo
-    2. ID_TO_EX_WD再次加4，传递至EX，如果move_sourse不为0，则用相应值更新EX段的hi_result、lo_result或ex_result。
-    3. **加入了一条移动inst_mlfo指令，PC对了但没加除法指令所以数据不对**
-    
-5. 添加了乘法和除法指令的实现机制：
-    + 类似move移动指令的实现机制，同样在ID中添加2位信号op_mul_and_div。0~1位依次表示操作为乘法、除法。
-    + ID_TO_EX_WD再次加2，传递至EX，如果op_mul_and_div不为0，则用相应操作后的div_result或mul_result相应分段更新EX段的hi_result和lo_result。
-
-***但还没有加乘法除法指令，下面需要加上mul除法指令以过pont 44***
