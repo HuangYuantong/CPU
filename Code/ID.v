@@ -5,7 +5,7 @@ module ID(
     // input wire flush,
     input wire [`StallBus-1:0] stall,
     
-    output wire stallreq,   //stall
+    output wire stallreq,   // stall
 
     input wire [`IF_TO_ID_WD-1:0] if_to_id_bus,
 
@@ -18,23 +18,17 @@ module ID(
     output wire [`BR_WD-1:0] br_bus, 
 
     //data correlation
-    input wire [`EX_TO_MEM_WD-1:0] ex_to_id_forwarding,  //ex-->id
+    input wire [`EX_TO_MEM_WD-1:0] ex_to_id_forwarding,     //ex-->id
+    input wire [`MEM_TO_WB_WD-1:0] mem_to_id_forwarding,    //mem-->id
 
-    input wire [`MEM_TO_WB_WD-1:0] mem_to_id_forwarding,  //mem-->id
-
-    input wire [`WB_TO_RF_WD-1:0] wb_to_id_forwarding,  //wb-->id
-
-    input wire stall_en
+    input wire stall_en    // stall signal from EX
+    
 );
 
     reg [`IF_TO_ID_WD-1:0] if_to_id_bus_r;
     wire [31:0] inst;
     wire [31:0] id_pc;
     wire ce;
-
-    wire wb_rf_we;
-    wire [4:0] wb_rf_waddr;
-    wire [31:0] wb_rf_wdata;
 
     reg id_stop;
 
@@ -59,19 +53,44 @@ module ID(
         end
     end
     
-    assign stallreq = ((stall_en) & ((rs == ex_forwarding_waddr) | (rt == ex_forwarding_waddr))) ? `Stop: `NoStop;
+    assign stallreq = ((stall_en) & ((rs == forwarding_ex_rf_waddr) | (rt == forwarding_ex_rf_waddr)))
+                     ? `Stop : `NoStop;
     assign inst = id_stop ? inst : inst_sram_rdata;
 
     assign {
         ce,
         id_pc
     } = if_to_id_bus_r;
+
+// Write and Read all the Registers (both normal and hilo)
+//////////////////////////////////////////////////
+    // 
+    // Write from Last Cycle
+    // 
+    wire wb_rf_we;
+    wire [4:0] wb_rf_waddr;
+    wire [31:0] wb_rf_wdata;
+    // hilo_reg write
+    wire wb_hi_we;
+    wire wb_lo_we;
+    wire [31:0]wb_hi_wdata;
+    wire [31:0]wb_lo_wdata;
+
     assign {
+        // hilo_reg's
+        wb_hi_we,
+        wb_lo_we,
+        wb_hi_wdata,
+        wb_lo_wdata,
+
         wb_rf_we,
         wb_rf_waddr,
         wb_rf_wdata
     } = wb_to_rf_bus;
 
+    // 
+    // Read and Decide-if-write from This Cycle
+    // 
     wire [5:0] opcode;
     wire [4:0] rs,rt,rd,sa;
     wire [5:0] func;
@@ -99,15 +118,30 @@ module ID(
 
     wire [31:0] rdata1, rdata2;
 
+    // helo_reg write enable signal of this cycle
+    wire hi_we, lo_we;
+    wire [31:0] hi_rdata;
+    wire [31:0] lo_rdata;
+
     regfile u_regfile(
     	.clk    (clk    ),
-        .raddr1 (rs ),
+        .raddr1 (rs     ),
         .rdata1 (rdata1 ),
-        .raddr2 (rt ),
+        .raddr2 (rt     ),
         .rdata2 (rdata2 ),
-        .we     (wb_rf_we     ),
-        .waddr  (wb_rf_waddr  ),
-        .wdata  (wb_rf_wdata  )
+        .we     (wb_rf_we   ),
+        .waddr  (wb_rf_waddr),
+        .wdata  (wb_rf_wdata),
+        // hilo_reg's part
+        .rst    (rst        ),
+        // write
+        .hi_we  (wb_hi_we   ),
+        .lo_we  (wb_lo_we   ),
+        .hi_i   (wb_hi_wdata),
+        .lo_i   (wb_lo_wdata),
+        // read
+        .hi_o   (hi_rdata   ),
+        .lo_o   (lo_rdata   )
     );
 
     assign opcode = inst[31:26];
@@ -131,12 +165,8 @@ module ID(
          inst_slt , inst_slti, inst_sltiu, inst_j   , inst_add ,
          inst_addi, inst_sub , inst_and  , inst_andi, inst_nor ,
          inst_xori, inst_sllv, inst_sra  , inst_srav, inst_srl , inst_srlv ,
-         inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr;
-
-
-    wire op_add, op_sub, op_slt, op_sltu;
-    wire op_and, op_nor, op_or, op_xor;
-    wire op_sll, op_srl, op_sra, op_lui;
+         inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr,  // point 37~43
+         inst_div , inst_mlfo;
 
     decoder_6_64 u0_decoder_6_64(
     	.in  (opcode  ),
@@ -197,10 +227,12 @@ module ID(
     assign inst_bltz    = op_d[6'b00_0001] & rt_d[5'b0_0000];
     assign inst_bgezal  = op_d[6'b00_0001] & rt_d[5'b10_001];
     assign inst_bltzal  = op_d[6'b00_0001] & rt_d[5'b10_000];
-    assign inst_jalr    = op_d[6'b00_0000] & func_d[6'b00_1001];
+    assign inst_jalr    = op_d[6'b00_0000] & rt_d[5'b0_0000] & func_d[6'b00_1001];
+    // point 44~, div and move
+    assign inst_div     = op_d[6'b00_0000] & func_d[6'b01_1010];
+    assign inst_mlfo    = op_d[6'b00_0000] & func_d[6'b01_0010];
 
 //////////////////////////////////////////////////
-
 
 // EX preparation
 //////////////////////////////////////////////////
@@ -209,7 +241,7 @@ module ID(
                              inst_lw  | inst_xor   | inst_sltu | inst_sw   | inst_slt |
                              inst_slti| inst_sltiu | inst_add  | inst_addi | inst_sub |
                              inst_and | inst_andi  | inst_nor  | inst_xori | inst_sllv|
-                             inst_srav| inst_srlv;
+                             inst_srav| inst_srlv  | inst_div;
 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal | inst_bgezal| inst_bltzal| inst_jalr;
@@ -221,7 +253,7 @@ module ID(
     assign sel_alu_src2[0] = inst_subu | inst_addu | inst_sll | inst_or   | inst_xor |
                               inst_sltu| inst_slt  | inst_add | inst_sub  | inst_and |
                               inst_nor | inst_sllv | inst_sra | inst_srav | inst_srl |
-                              inst_srlv;
+                              inst_srlv| inst_div;
     
     // imm_sign_extend to reg2
     assign sel_alu_src2[1] = inst_lui | inst_addiu | inst_lw | inst_sw | inst_slti |
@@ -234,6 +266,10 @@ module ID(
     assign sel_alu_src2[3] = inst_ori | inst_andi | inst_xori;
 
     // ALU operation
+    wire op_add, op_sub, op_slt, op_sltu,
+        op_and, op_nor, op_or, op_xor,
+        op_sll, op_srl, op_sra, op_lui;
+
     assign op_add  = inst_addiu | inst_addu | inst_jal   | inst_lw    | inst_sw   |
                      inst_add   | inst_addi | inst_bgezal| inst_bltzal| inst_jalr;
     assign op_sub  = inst_subu  | inst_sub;
@@ -254,12 +290,34 @@ module ID(
 //////////////////////////////////////////////////
 
 
+// Mul, Div and Move operation
+//////////////////////////////////////////////////
+    // Mul and Div
+    wire [1:0] op_mul_and_div;
+    // mul signal
+    assign op_mul_and_div[0] = 1'b0;
+    // div signal
+    assign op_mul_and_div[1] = inst_div;
+    
+    // Move
+    wire [3:0] move_sourse;
+    // rs to move sourse
+    assign move_sourse[0] = 1'b0;
+    // rd to move sourse
+    assign move_sourse[1] = 1'b0;
+    // hi to move sourse
+    assign move_sourse[2] = 1'b0;
+    // lo to move sourse
+    assign move_sourse[3] = inst_mlfo;
+//////////////////////////////////////////////////
+
+
 // MEM preparation
 //////////////////////////////////////////////////
-    // load and store enable
+    // RAM load and store enable
     assign data_ram_en = inst_lw | inst_sw;   
 
-    // write enable
+    // RAM write enable
     assign data_ram_wen =  inst_sw? 4'b1111
                          : 4'b0000; 
 
@@ -269,18 +327,18 @@ module ID(
                      inst_sltu | inst_slt  | inst_slti  | inst_sltiu| inst_add  |
                      inst_addi | inst_sub  | inst_and   | inst_andi |inst_nor   |
                      inst_xori |inst_sllv  | inst_sra   | inst_srav | inst_srl  |
-                     inst_srlv |inst_bgezal| inst_bltzal| inst_jalr;
+                     inst_srlv |inst_bgezal| inst_bltzal| inst_jalr | inst_mlfo ;
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_subu   | inst_addu | inst_sll | inst_or   | inst_xor |
                              inst_sltu | inst_slt  | inst_add | inst_sub  | inst_and |
                              inst_nor  | inst_sllv | inst_sra | inst_srav | inst_srl |
-                             inst_srlv  ;
+                             inst_srlv | inst_jalr | inst_mlfo;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_ori     | inst_lui  | inst_addiu | inst_lw  | inst_slti |
                              inst_sltiu | inst_addi | inst_andi  | inst_xori;
     // store in [31]
-    assign sel_rf_dst[2] = inst_jal | inst_bgezal | inst_bltzal | inst_jalr;
+    assign sel_rf_dst[2] = inst_jal | inst_bgezal | inst_bltzal;
 
     // sel for regfile address
     assign rf_waddr = {5{sel_rf_dst[0]}} & rd 
@@ -289,60 +347,100 @@ module ID(
 
     // 0 from alu_res ; 1 from ld_res
     assign sel_rf_res = inst_lw ;
- //////////////////////////////////////////////////   
+
+    // store in hi
+    assign hi_we = inst_div;
+
+    // store in lo
+    assign lo_we = inst_div;
+//////////////////////////////////////////////////
 
     
 
-    //data correlation start
-    // we just use six of these variables, maybe after we will use the others
-    //ex_to_id_forwarding
-    wire [31:0] ex_forwarding_ex_pc;
-    wire ex_forwarding_data_ram_en;
-    wire [3:0] ex_forwarding_data_ram_wen;
-    wire ex_forwarding_sel_rf_res;
-    wire ex_forwarding_we;             //main use
-    wire [4:0] ex_forwarding_waddr;    //main use
-    wire [31:0] ex_forwarding_result;     //main use
-    //mem_to_id_forwarding
-    wire [31:0] mem_forwarding_mem_pc;
-    wire mem_forwarding_we;                //main use
-    wire [4:0] mem_forwarding_waddr;   //main use
-    wire [31:0] mem_forwarding_wdata;  //main use
+// forwarding
+//////////////////////////////////////////////////
+    wire forwarding_ex_hi_we;
+    wire forwarding_ex_lo_we;
+    wire [31:0] forwarding_ex_hi_result;
+    wire [31:0] forwarding_ex_lo_result;
+    wire [31:0] forwarding_ex_pc;
+    wire forwarding_data_ram_en;
+    wire [3:0] forwarding_data_ram_wen;
+    wire forwarding_sel_rf_res;
+    wire forwarding_ex_rf_we;             // EX needs to write
+    wire [4:0] forwarding_ex_rf_waddr;    // EX's writing address
+    wire [31:0] forwarding_ex_result;     // EX's writing value
+
+    wire forwarding_mem_hi_we;
+    wire forwarding_mem_lo_we;
+    wire [31:0] forwarding_mem_hi_result;
+    wire [31:0] forwarding_mem_lo_result;
+    wire [31:0] forwarding_mem_pc;
+    wire forwarding_mem_rf_we;            // MEM needs to write
+    wire [4:0] forwarding_mem_rf_waddr;   // MEM's writing address
+    wire [31:0] forwarding_mem_rf_wdata;  // MEM's writing value
 
     
     wire [31:0] selected_rdata1, selected_rdata2;
+    wire [31:0] selected_hi_rdata, selected_lo_rdata;
 
     assign {
-        ex_forwarding_ex_pc,          // 75:44
-        ex_forwarding_data_ram_en,    // 43
-        ex_forwarding_data_ram_wen,   // 42:39
-        ex_forwarding_sel_rf_res,     // 38
-        ex_forwarding_we,          // 37
-        ex_forwarding_waddr,       // 36:32
-        ex_forwarding_result       // 31:0
+        forwarding_ex_hi_we,
+        forwarding_ex_lo_we,
+        forwarding_ex_hi_result,
+        forwarding_ex_lo_result,
+        forwarding_ex_pc,           // 75:44
+        forwarding_data_ram_en,     // 43
+        forwarding_data_ram_wen,    // 42:39
+        forwarding_sel_rf_res,      // 38
+        forwarding_ex_rf_we,        // 37
+        forwarding_ex_rf_waddr,     // 36:32
+        forwarding_ex_result        // 31:0
     } = ex_to_id_forwarding;
 
     assign {
-        mem_forwarding_mem_pc,    //41:38
-        mem_forwarding_we,     //37
-        mem_forwarding_waddr,  //36:32
-        mem_forwarding_wdata   //31:0
+        forwarding_mem_hi_we,
+        forwarding_mem_lo_we,
+        forwarding_mem_hi_result,
+        forwarding_mem_lo_result,
+        forwarding_mem_pc,          //41:38
+        forwarding_mem_rf_we,       //37
+        forwarding_mem_rf_waddr,    //36:32
+        forwarding_mem_rf_wdata     //31:0
     } = mem_to_id_forwarding;
 
 
-    assign selected_rdata1 = (ex_forwarding_we & (ex_forwarding_waddr == rs)) ? ex_forwarding_result
-                            :(mem_forwarding_we & (mem_forwarding_waddr == rs)) ? mem_forwarding_wdata
-                            :(wb_rf_we & (wb_rf_waddr == rs)) ? wb_rf_wdata
-                            :rdata1;
+    assign selected_rdata1 = (forwarding_ex_rf_we & (forwarding_ex_rf_waddr == rs)) ? forwarding_ex_result
+                            : (forwarding_mem_rf_we & (forwarding_mem_rf_waddr == rs)) ? forwarding_mem_rf_wdata
+                            : (wb_rf_we & (wb_rf_waddr == rs)) ? wb_rf_wdata
+                            : rdata1;
 
-    assign selected_rdata2 = (ex_forwarding_we & (ex_forwarding_waddr == rt)) ? ex_forwarding_result
-                            :(mem_forwarding_we & (mem_forwarding_waddr == rt)) ? mem_forwarding_wdata
-                            :(wb_rf_we & (wb_rf_waddr == rt)) ? wb_rf_wdata
-                            :rdata2;
+    assign selected_rdata2 = (forwarding_ex_rf_we & (forwarding_ex_rf_waddr == rt)) ? forwarding_ex_result
+                            : (forwarding_mem_rf_we & (forwarding_mem_rf_waddr == rt)) ? forwarding_mem_rf_wdata
+                            : (wb_rf_we & (wb_rf_waddr == rt)) ? wb_rf_wdata
+                            : rdata2;
     
-    //data correlation end
+    assign selected_hi_rdata = forwarding_ex_hi_we ? forwarding_ex_hi_result
+                            : forwarding_mem_hi_we ? forwarding_mem_hi_result
+                            : wb_hi_we ? wb_hi_wdata
+                            : hi_rdata;
+
+    assign selected_lo_rdata = forwarding_ex_lo_we ? forwarding_ex_lo_result
+                            : forwarding_mem_lo_we ? forwarding_mem_lo_result
+                            : wb_lo_we ? wb_lo_wdata
+                            : lo_rdata;
+
+//////////////////////////////////////////////////
 
     assign id_to_ex_bus = {
+        op_mul_and_div, // 229:230
+        move_sourse,    // 225:228
+        // hilo_reg's
+        hi_we,          // 224
+        lo_we,          // 223
+        selected_hi_rdata,// 191:222
+        selected_lo_rdata,// 159:190
+
         id_pc,          // 158:127
         inst,           // 126:95
         alu_op,         // 94:83
@@ -353,8 +451,8 @@ module ID(
         rf_we,          // 70
         rf_waddr,       // 69:65
         sel_rf_res,     // 64
-        selected_rdata1,         // 63:32
-        selected_rdata2          // 31:0
+        selected_rdata1,// 63:32
+        selected_rdata2 // 31:0
     };
 
 
@@ -402,7 +500,6 @@ module ID(
         br_e,
         br_addr
     };
-//////////////////////////////////////////////////    
-
+//////////////////////////////////////////////////   
 
 endmodule

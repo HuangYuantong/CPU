@@ -31,10 +31,7 @@ module mycpu_core(
     wire [`StallBus-1:0] stall;
 
     wire [`EX_TO_MEM_WD-1:0] ex_to_id_forwarding;  //ex-->id
-
     wire [`MEM_TO_WB_WD-1:0] mem_to_id_forwarding; //mem-->id
-
-    wire [`WB_TO_RF_WD-1:0] wb_to_id_forwarding;  //wb-->id
 
     //stall
     wire stallreq;
@@ -66,7 +63,6 @@ module mycpu_core(
         .br_bus          (br_bus          ),
         .ex_to_id_forwarding    (ex_to_id_forwarding    ),
         .mem_to_id_forwarding   (mem_to_id_forwarding   ),
-        .wb_to_id_forwarding    (wb_to_id_forwarding    ),
         .stall_en        (stall_en        )
     );
 
@@ -104,8 +100,7 @@ module mycpu_core(
         .debug_wb_pc       (debug_wb_pc       ),
         .debug_wb_rf_wen   (debug_wb_rf_wen   ),
         .debug_wb_rf_wnum  (debug_wb_rf_wnum  ),
-        .debug_wb_rf_wdata (debug_wb_rf_wdata ),
-        .wb_to_id_forwarding      (wb_to_id_forwarding      )
+        .debug_wb_rf_wdata (debug_wb_rf_wdata )
     );
 
     CTRL u_CTRL(

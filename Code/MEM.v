@@ -10,7 +10,7 @@ module MEM(
 
     output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
 
-    //data correlation
+    // forwarding
     output wire [`MEM_TO_WB_WD-1:0] mem_to_id_forwarding
 );
 
@@ -40,8 +40,18 @@ module MEM(
     wire [31:0] rf_wdata;
     wire [31:0] ex_result;
     wire [31:0] mem_result;
+    
+    // helo_reg write
+    wire hi_we, lo_we;
+    wire [31:0] hi_result, lo_result;
 
     assign {
+        // hilo_reg's
+        hi_we,          // 141
+        lo_we,          // 140
+        hi_result,      // 108:139
+        lo_result,      // 76:107
+
         mem_pc,         // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -53,20 +63,33 @@ module MEM(
 
     assign mem_result = data_sram_rdata;
     
-    assign rf_wdata = sel_rf_res ? mem_result : ex_result;
+    assign rf_wdata = sel_rf_res ? mem_result
+                        : ex_result;
 
     assign mem_to_wb_bus = {
-        mem_pc,     // 69:38
-        rf_we,      // 37
-        rf_waddr,   // 36:32
-        rf_wdata    // 31:0
+        // hilo_reg's
+        hi_we,          // 135
+        lo_we,          // 134
+        hi_result,      // 102:133
+        lo_result,      // 70:101
+
+        mem_pc,         // 69:38
+        rf_we,          // 37
+        rf_waddr,       // 36:32
+        rf_wdata        // 31:0
     };
 
     assign mem_to_id_forwarding = {
-        mem_pc,    //41:38
-        rf_we,     //37
-        rf_waddr,  //36:32
-        rf_wdata   //31:0
+        // hilo_reg's
+        hi_we,          // 135
+        lo_we,          // 134
+        hi_result,      // 102:133
+        lo_result,      // 70:101
+
+        mem_pc,         // 69:38
+        rf_we,          // 37
+        rf_waddr,       // 36:32
+        rf_wdata        // 31:0
     };
 
 

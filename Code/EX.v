@@ -14,10 +14,10 @@ module EX(
     output wire [31:0] data_sram_addr,
     output wire [31:0] data_sram_wdata,
 
-    //data correlation
+    // data correlation
     output wire [`EX_TO_MEM_WD-1:0] ex_to_id_forwarding,
 
-    //stall 
+    // stall 
     output wire stallreq_for_ex,
 
     output wire stall_en    //to id
@@ -51,8 +51,27 @@ module EX(
     wire sel_rf_res;
     wire [31:0] rf_rdata1, rf_rdata2;
     reg is_in_delayslot;
+    
+    // Mul and Div signal
+    wire [1:0] op_mul_and_div;
+    // move operation's source
+    wire [3:0] move_sourse;
+
+    // helo_reg write enable signal of this cycle
+    wire hi_we, lo_we;
+    wire [31:0] hi_rdata;
+    wire [31:0] lo_rdata;
+
 
     assign {
+        op_mul_and_div, // 229:230
+        move_sourse,    // 215:218
+        // hilo_reg's
+        hi_we,          // 214
+        lo_we,          // 213
+        hi_rdata,       // 181:212
+        lo_rdata,       // 149:180
+
         ex_pc,          // 148:117
         inst,           // 116:85
         alu_op,         // 84:83
@@ -63,8 +82,8 @@ module EX(
         rf_we,          // 70
         rf_waddr,       // 69:65
         sel_rf_res,     // 64
-        rf_rdata1,         // 63:32
-        rf_rdata2          // 31:0
+        rf_rdata1,      // 63:32
+        rf_rdata2       // 31:0
     } = id_to_ex_bus_r;
 
     wire [31:0] imm_sign_extend, imm_zero_extend, sa_zero_extend;
@@ -74,6 +93,8 @@ module EX(
 
     wire [31:0] alu_src1, alu_src2;
     wire [31:0] alu_result, ex_result;
+    // mul and div's result stored in these
+    wire [31:0] hi_result, lo_result;
 
 
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
@@ -90,9 +111,28 @@ module EX(
         .alu_result  (alu_result  )
     );
 
-    assign ex_result = alu_result;
+// Move: if move_sourse!=0 then current is a move operation
+// Mul and Div: if op_mul_and_div!=0 then current is a mul or div operation
+//////////////////////////////////////////////////
+    assign ex_result = move_sourse[2] ? hi_rdata
+                        : move_sourse[3] ? lo_rdata
+                        : alu_result;
+    
+    assign hi_result = (move_sourse[0] & hi_we) ? rf_rdata1
+                        : (move_sourse[1] & hi_we) ? rf_rdata2
+                        : op_mul_and_div[0] ? mul_result[63:32]    // ³Ë·¨¸ßÎ»
+                        : op_mul_and_div[1] ? div_result[63:32]    // ³ı·¨ÓàÊı
+                        : hi_rdata;
+    
+    assign lo_result = (move_sourse[0] & lo_we) ? rf_rdata1
+                        : (move_sourse[1] & lo_we) ? rf_rdata2
+                        : op_mul_and_div[0] ? mul_result[31:0]    // ³Ë·¨µÍÎ»
+                        : op_mul_and_div[1] ? div_result[31:0]    // ³ı·¨ÉÌ
+                        : hi_rdata;
+//////////////////////////////////////////////////
+    
 
-    //load and store instructions
+    // load and store instructions
     assign stall_en = (inst[31:26]==6'b10_0011)?1'b1:1'b0;   
 
     assign data_sram_en = data_ram_en;
@@ -102,12 +142,18 @@ module EX(
 
     //
 
-    //stall part start
+    // stall part start
     assign stallreq_for_ex = `NoStop;
 
-    //stall part end
+    // stall part end
 
     assign ex_to_mem_bus = {
+        // hilo_reg's
+        hi_we,          // 141
+        lo_we,          // 140
+        hi_result,      // 108:139
+        lo_result,      // 76:107
+
         ex_pc,          // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -118,6 +164,12 @@ module EX(
     };
 
     assign ex_to_id_forwarding = {
+        // hilo_reg's
+        hi_we,          // 141
+        lo_we,          // 140
+        hi_result,      // 108:139
+        lo_result,      // 76:107
+
         ex_pc,          // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -129,15 +181,15 @@ module EX(
 
     // MUL part
     wire [63:0] mul_result;
-    wire mul_signed; // æœ‰ç¬¦å·ä¹˜æ³•æ ‡ï¿½?
+    wire mul_signed; // ÓĞ·ûºÅ³Ë·¨±êÖ¾
 
     mul u_mul(
     	.clk        (clk            ),
         .resetn     (~rst           ),
         .mul_signed (mul_signed     ),
-        .ina        (      ), // ä¹˜æ³•æºæ“ä½œæ•°1
-        .inb        (      ), // ä¹˜æ³•æºæ“ä½œæ•°2
-        .result     (mul_result     ) // ä¹˜æ³•ç»“æœ 64bit
+        .ina        (               ), // ³Ë·¨Ô´²Ù×÷Êı1
+        .inb        (               ), // ³Ë·¨Ô´²Ù×÷Êı2
+        .result     (mul_result     )  // ³Ë·¨½á¹û 64bit
     );
 
     // DIV part
@@ -153,14 +205,14 @@ module EX(
     reg signed_div_o;
 
     div u_div(
-    	.rst          (rst          ),
-        .clk          (clk          ),
-        .signed_div_i (signed_div_o ),
+    	.rst          (rst              ),
+        .clk          (clk              ),
+        .signed_div_i (signed_div_o     ),
         .opdata1_i    (div_opdata1_o    ),
         .opdata2_i    (div_opdata2_o    ),
         .start_i      (div_start_o      ),
-        .annul_i      (1'b0      ),
-        .result_o     (div_result     ), // é™¤æ³•ç»“æœ 64bit
+        .annul_i      (1'b0             ),
+        .result_o     (div_result       ), // ³ı·¨½á¹û 64bit
         .ready_o      (div_ready_i      )
     );
 
@@ -231,7 +283,7 @@ module EX(
         end
     end
 
-    // mul_result ï¿½? div_result å¯ä»¥ç›´æ¥ä½¿ç”¨
+    // can directly use "mul_result" and "div_result"
     
     
 endmodule
