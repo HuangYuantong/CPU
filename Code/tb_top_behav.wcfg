@@ -11,6 +11,7 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
+<<<<<<< Updated upstream
       <ZoomStartTime time="737335723fs"></ZoomStartTime>
       <ZoomEndTime time="737357624fs"></ZoomEndTime>
       <Cursor1Time time="737342063fs"></Cursor1Time>
@@ -20,6 +21,17 @@
       <ValueColumnWidth column_width="132"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="3" />
+=======
+      <ZoomStartTime time="984102792fs"></ZoomStartTime>
+      <ZoomEndTime time="984115443fs"></ZoomEndTime>
+      <Cursor1Time time="984121342fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="229"></NameColumnWidth>
+      <ValueColumnWidth column_width="126"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="8" />
+>>>>>>> Stashed changes
    <wvobject fp_name="/tb_top/debug_wb_pc" type="array">
       <obj_property name="ElementShortName">debug_wb_pc[31:0]</obj_property>
       <obj_property name="ObjectShortName">debug_wb_pc[31:0]</obj_property>
@@ -32,4 +44,27 @@
       <obj_property name="ElementShortName">id_stop</obj_property>
       <obj_property name="ObjectShortName">id_stop</obj_property>
    </wvobject>
+<<<<<<< Updated upstream
+=======
+   <wvobject fp_name="/tb_top/debug_wb_rf_wdata" type="array">
+      <obj_property name="ElementShortName">debug_wb_rf_wdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">debug_wb_rf_wdata[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top/soc_lite/cpu/u_mycpu_core/u_ID/u_regfile/hi" type="array">
+      <obj_property name="ElementShortName">hi[31:0]</obj_property>
+      <obj_property name="ObjectShortName">hi[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top/soc_lite/cpu/u_mycpu_core/u_ID/u_regfile/lo" type="array">
+      <obj_property name="ElementShortName">lo[31:0]</obj_property>
+      <obj_property name="ObjectShortName">lo[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top/soc_lite/cpu/u_mycpu_core/u_EX/rf_rdata1" type="array">
+      <obj_property name="ElementShortName">rf_rdata1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rf_rdata1[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top/soc_lite/cpu/u_mycpu_core/u_EX/rf_rdata2" type="array">
+      <obj_property name="ElementShortName">rf_rdata2[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rf_rdata2[31:0]</obj_property>
+   </wvobject>
+>>>>>>> Stashed changes
 </wave_config>

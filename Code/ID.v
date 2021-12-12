@@ -131,12 +131,23 @@ module ID(
          inst_slt , inst_slti, inst_sltiu, inst_j   , inst_add ,
          inst_addi, inst_sub , inst_and  , inst_andi, inst_nor ,
          inst_xori, inst_sllv, inst_sra  , inst_srav, inst_srl , inst_srlv ,
+<<<<<<< Updated upstream
          inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr;
 
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
     wire op_sll, op_srl, op_sra, op_lui;
+=======
+         // point 37~43, branch
+         inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr,
+         // point 44~58, div and move
+         inst_div , inst_divu , inst_mult, inst_multu,
+         inst_mflo, inst_mfhi , inst_mthi, inst_mtlo ,
+         inst_lb,   inst_lbu  , inst_lh  , inst_lhu  ,
+         inst_sb,   inst_sh;
+
+>>>>>>> Stashed changes
 
     decoder_6_64 u0_decoder_6_64(
     	.in  (opcode  ),
@@ -197,7 +208,27 @@ module ID(
     assign inst_bltz    = op_d[6'b00_0001] & rt_d[5'b0_0000];
     assign inst_bgezal  = op_d[6'b00_0001] & rt_d[5'b10_001];
     assign inst_bltzal  = op_d[6'b00_0001] & rt_d[5'b10_000];
+<<<<<<< Updated upstream
     assign inst_jalr    = op_d[6'b00_0000] & func_d[6'b00_1001];
+=======
+    assign inst_jalr    = op_d[6'b00_0000] & rt_d[5'b0_0000] & func_d[6'b00_1001];
+    // point 44~58, div and move
+    assign inst_div     = op_d[6'b00_0000] & func_d[6'b01_1010];
+    assign inst_divu    = op_d[6'b00_0000] & func_d[6'b01_1011];
+    assign inst_mult    = op_d[6'b00_0000] & func_d[6'b01_1000];
+    assign inst_multu   = op_d[6'b00_0000] & func_d[6'b01_1001];
+    assign inst_mflo    = op_d[6'b00_0000] & func_d[6'b01_0010];
+    assign inst_mfhi    = op_d[6'b00_0000] & func_d[6'b01_0000];
+    assign inst_mthi    = op_d[6'b00_0000] & func_d[6'b01_0001];
+    assign inst_mtlo    = op_d[6'b00_0000] & func_d[6'b01_0011];
+    //point 59~  , l and s
+    assign inst_lb      = op_d[6'b10_0000];
+    assign inst_lbu     = op_d[6'b10_0100];
+    assign inst_lh      = op_d[6'b10_0001];
+    assign inst_lhu     = op_d[6'b10_0101];
+    assign inst_sb      = op_d[6'b10_1000];
+    assign inst_sh      = op_d[6'b10_1001];
+>>>>>>> Stashed changes
 
 //////////////////////////////////////////////////
 
@@ -209,7 +240,13 @@ module ID(
                              inst_lw  | inst_xor   | inst_sltu | inst_sw   | inst_slt |
                              inst_slti| inst_sltiu | inst_add  | inst_addi | inst_sub |
                              inst_and | inst_andi  | inst_nor  | inst_xori | inst_sllv|
+<<<<<<< Updated upstream
                              inst_srav| inst_srlv;
+=======
+                             inst_srav| inst_srlv  | inst_div  | inst_divu | inst_mult|
+                             inst_multu| inst_mthi | inst_mtlo | inst_lb   | inst_lbu |
+                             inst_lh  | inst_lhu   | inst_sb   | inst_sh;
+>>>>>>> Stashed changes
 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal | inst_bgezal| inst_bltzal| inst_jalr;
@@ -225,7 +262,8 @@ module ID(
     
     // imm_sign_extend to reg2
     assign sel_alu_src2[1] = inst_lui | inst_addiu | inst_lw | inst_sw | inst_slti |
-                             inst_sltiu| inst_addi;
+                             inst_sltiu| inst_addi | inst_lb | inst_lbu| inst_lh   |
+                             inst_lhu | inst_sb    | inst_sh;
 
     // 32'b8 to reg2
     assign sel_alu_src2[2] = inst_jal | inst_bgezal| inst_bltzal| inst_jalr;
@@ -235,7 +273,9 @@ module ID(
 
     // ALU operation
     assign op_add  = inst_addiu | inst_addu | inst_jal   | inst_lw    | inst_sw   |
-                     inst_add   | inst_addi | inst_bgezal| inst_bltzal| inst_jalr;
+                     inst_add   | inst_addi | inst_bgezal| inst_bltzal| inst_jalr |
+                     inst_lb    | inst_lbu  | inst_lh    | inst_lhu   | inst_sb   |
+                     inst_sh;
     assign op_sub  = inst_subu  | inst_sub;
     assign op_slt  = inst_slt   | inst_slti;
     assign op_sltu = inst_sltu  | inst_sltiu;
@@ -254,6 +294,7 @@ module ID(
 //////////////////////////////////////////////////
 
 
+<<<<<<< Updated upstream
 // MEM preparation
 //////////////////////////////////////////////////
     // load and store enable
@@ -261,6 +302,56 @@ module ID(
 
     // write enable
     assign data_ram_wen =  inst_sw? 4'b1111
+=======
+// Mul, Div and Move operation
+//////////////////////////////////////////////////
+    // Mul and Div
+    wire [3:0] op_mul_and_div;
+    // mult signal
+    assign op_mul_and_div[0] = inst_mult ;
+    // multu signal
+    assign op_mul_and_div[1] = inst_multu;
+    // div signal
+    assign op_mul_and_div[2] = inst_div  ;
+    // divu signal
+    assign op_mul_and_div[3] = inst_divu ;
+
+    // Move
+    wire [3:0] move_sourse;
+    // rs to move sourse
+    assign move_sourse[0] = inst_mthi | inst_mtlo;
+    // rd to move sourse
+    assign move_sourse[1] = 1'b0;
+    // hi to move sourse
+    assign move_sourse[2] = inst_mfhi;
+    // lo to move sourse
+    assign move_sourse[3] = inst_mflo;
+//////////////////////////////////////////////////
+
+//lw,lb,lbu,lh,lhu
+/////////////////////////////////////////////////
+wire [4:0] op_mem;
+assign op_mem[0]=inst_lw;
+assign op_mem[1]=inst_lb;
+assign op_mem[2]=inst_lbu;
+assign op_mem[3]=inst_lh;
+assign op_mem[4]=inst_lhu;
+////////////////////////////////////////////////
+//sw,sb,sh
+///////////////////////////////////////////////
+wire [2:0] op_ex;
+assign op_ex[0]=inst_sw;
+assign op_ex[1]=inst_sb;
+assign op_ex[2]=inst_sh;
+//////////////////////////////////////////////
+// MEM preparation
+//////////////////////////////////////////////////
+    // RAM load and store enable
+    assign data_ram_en = inst_lw | inst_sw | inst_lb | inst_lbu| inst_lh | inst_lhu | inst_sb | inst_sh;   
+
+    // RAM write enable
+    assign data_ram_wen =  ( inst_sw | inst_sb | inst_sh )? 4'b1111
+>>>>>>> Stashed changes
                          : 4'b0000; 
 
     // regfile store enable
@@ -269,7 +360,12 @@ module ID(
                      inst_sltu | inst_slt  | inst_slti  | inst_sltiu| inst_add  |
                      inst_addi | inst_sub  | inst_and   | inst_andi |inst_nor   |
                      inst_xori |inst_sllv  | inst_sra   | inst_srav | inst_srl  |
+<<<<<<< Updated upstream
                      inst_srlv |inst_bgezal| inst_bltzal| inst_jalr;
+=======
+                     inst_srlv |inst_bgezal| inst_bltzal| inst_jalr | inst_mflo |
+                     inst_mfhi | inst_lb   | inst_lbu   | inst_lh   | inst_lhu;
+>>>>>>> Stashed changes
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_subu   | inst_addu | inst_sll | inst_or   | inst_xor |
@@ -278,7 +374,8 @@ module ID(
                              inst_srlv  ;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_ori     | inst_lui  | inst_addiu | inst_lw  | inst_slti |
-                             inst_sltiu | inst_addi | inst_andi  | inst_xori;
+                             inst_sltiu | inst_addi | inst_andi  | inst_xori| inst_lb   |
+                             inst_lbu   | inst_lh   | inst_lhu;
     // store in [31]
     assign sel_rf_dst[2] = inst_jal | inst_bgezal | inst_bltzal | inst_jalr;
 
@@ -288,6 +385,7 @@ module ID(
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
+<<<<<<< Updated upstream
     assign sel_rf_res = inst_lw ;
  //////////////////////////////////////////////////   
 
@@ -308,11 +406,48 @@ module ID(
     wire mem_forwarding_we;                //main use
     wire [4:0] mem_forwarding_waddr;   //main use
     wire [31:0] mem_forwarding_wdata;  //main use
+=======
+    assign sel_rf_res = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu;
+
+    // store in hi
+    assign hi_we = inst_div | inst_divu | inst_mult | inst_multu | inst_mthi;
+
+    // store in lo
+    assign lo_we = inst_div | inst_divu | inst_mult | inst_multu | inst_mtlo;
+//////////////////////////////////////////////////
+
+    
+
+// forwarding
+//////////////////////////////////////////////////
+    wire [4:0] forwarding_op_mem;
+    wire forwarding_ex_hi_we;
+    wire forwarding_ex_lo_we;
+    wire [31:0] forwarding_ex_hi_result;
+    wire [31:0] forwarding_ex_lo_result;
+    wire [31:0] forwarding_ex_pc;
+    wire forwarding_data_ram_en;
+    wire [3:0] forwarding_data_ram_wen;
+    wire forwarding_sel_rf_res;
+    wire forwarding_ex_rf_we;             // EX needs to write
+    wire [4:0] forwarding_ex_rf_waddr;    // EX's writing address
+    wire [31:0] forwarding_ex_result;     // EX's writing value
+
+    wire forwarding_mem_hi_we;
+    wire forwarding_mem_lo_we;
+    wire [31:0] forwarding_mem_hi_result;
+    wire [31:0] forwarding_mem_lo_result;
+    wire [31:0] forwarding_mem_pc;
+    wire forwarding_mem_rf_we;            // MEM needs to write
+    wire [4:0] forwarding_mem_rf_waddr;   // MEM's writing address
+    wire [31:0] forwarding_mem_rf_wdata;  // MEM's writing value
+>>>>>>> Stashed changes
 
     
     wire [31:0] selected_rdata1, selected_rdata2;
 
     assign {
+<<<<<<< Updated upstream
         ex_forwarding_ex_pc,          // 75:44
         ex_forwarding_data_ram_en,    // 43
         ex_forwarding_data_ram_wen,   // 42:39
@@ -320,6 +455,20 @@ module ID(
         ex_forwarding_we,          // 37
         ex_forwarding_waddr,       // 36:32
         ex_forwarding_result       // 31:0
+=======
+        forwarding_op_mem,
+        forwarding_ex_hi_we,
+        forwarding_ex_lo_we,
+        forwarding_ex_hi_result,
+        forwarding_ex_lo_result,
+        forwarding_ex_pc,           // 75:44
+        forwarding_data_ram_en,     // 43
+        forwarding_data_ram_wen,    // 42:39
+        forwarding_sel_rf_res,      // 38
+        forwarding_ex_rf_we,        // 37
+        forwarding_ex_rf_waddr,     // 36:32
+        forwarding_ex_result        // 31:0
+>>>>>>> Stashed changes
     } = ex_to_id_forwarding;
 
     assign {
@@ -343,6 +492,19 @@ module ID(
     //data correlation end
 
     assign id_to_ex_bus = {
+<<<<<<< Updated upstream
+=======
+        op_ex,          // 238:240
+        op_mem,         // 233:237
+        op_mul_and_div, // 229:232
+        move_sourse,    // 225:228
+        // hilo_reg's
+        hi_we,          // 224
+        lo_we,          // 223
+        selected_hi_rdata,// 191:222
+        selected_lo_rdata,// 159:190
+
+>>>>>>> Stashed changes
         id_pc,          // 158:127
         inst,           // 126:95
         alu_op,         // 94:83
