@@ -29,6 +29,17 @@
 2.添加id_stop(id段暂停作为判断)用来顺势延长指令执行周期
 
 ### 12.6：通过point9~36
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+* 添加了指令inst_slti、inst_sltiu，通过point9~12
+* 添加了指令inst_j、inst_add，通过point13~15
+* 添加了指令inst_addi、inst_sub、inst_and、inst_andi、inst_nor、inst_xori、inst_sllv、inst_sra、inst_srav、inst_srl、inst_srlv,inst_bgez，通过point16~36
+### 12.8：通过point37-43
+* 添加了指令inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr;通过了point37-43
+>>>>>>> Stashed changes
+=======
+>>>>>>> Xsword-yzs
 * 添加了指令inst_slti, inst_sltiu，通过point9~12
 * 添加了指令inst_j, inst_add，通过point13~15
 * 添加了指令inst_addi, inst_sub, inst_and, inst_andi, inst_nor, inst_xori, inst_sllv, inst_sra, inst_srav, inst_srl, inst_srlv,inst_bgez，通过point16~36
@@ -98,3 +109,16 @@
     * 如上文“move移动指令的实现机制”所记，在ID段设置以下参数即可实现跳转：
         * 设置move_sourse以指定数据源
         * 设置rf_we、hi_we、lo_we以指定目的地
+<<<<<<< HEAD
+=======
+### 12.12: 添加了lb,lbu,lh,lhu,sb,sh指令，通过point 59-64
+1. 添加了访存指令：inst_lb,inst_lbu,inst_lh,inst_lhu
+    * 在id段添加op_mem[4:0]用来存储五个l指令的信号，传递到mem段
+    * 在mem段中通过op_mem中对应指令的信号和ex_result的低位信号(最低两位)来判断mem_result取值；
+    * ex_result的低位信号(最低两位)来表示具体取data_sram_rdata的具体位数的字节，剩余位数进行符号扩展补充
+2. 添加了访存指令：inst_sb,inst_sh
+    * 在id段添加op_ex[2:0]用来存储三个s指令的信号，传递到ex段
+    * 在ex段利用op_ex中对应指令的信号和alu_result的低位信号(最低两位)来判断data_sram_wen取值
+    * 在ex段利用op_ex中对应指令的信号来判断data_sram_wdata所取的rf_rdata2(rt)的字节位，对于空缺位数用所取字节位进行填充，防止l指令运行时取错
+>>>>>>> Stashed changes
+>>>>>>> Xsword-yzs
