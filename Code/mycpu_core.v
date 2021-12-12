@@ -109,5 +109,10 @@ module mycpu_core(
         .stallreq_for_ex    (stallreq_for_ex ),
         .stall              (stall           )
     );
+
+    // hilo_reg
+    // clk
+    // rst
+    // output hi lo
     
 endmodule

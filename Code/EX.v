@@ -4,7 +4,7 @@ module EX(
     input wire rst,
     // input wire flush,
     input wire [`StallBus-1:0] stall,
-
+    
     input wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
     output wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
@@ -21,6 +21,7 @@ module EX(
     output wire stallreq_for_ex,
 
     output wire stall_en    //to id
+    
 );
 
     reg [`ID_TO_EX_WD-1:0] id_to_ex_bus_r;
@@ -51,20 +52,18 @@ module EX(
     wire sel_rf_res;
     wire [31:0] rf_rdata1, rf_rdata2;
     reg is_in_delayslot;
-    
+
     // Mul and Div signal
-    wire [1:0] op_mul_and_div;
+    wire [3:0] op_mul_and_div;
     // move operation's source
     wire [3:0] move_sourse;
-
     // helo_reg write enable signal of this cycle
     wire hi_we, lo_we;
     wire [31:0] hi_rdata;
     wire [31:0] lo_rdata;
 
-
     assign {
-        op_mul_and_div, // 229:230
+        op_mul_and_div, // 229:232
         move_sourse,    // 215:218
         // hilo_reg's
         hi_we,          // 214
@@ -114,20 +113,28 @@ module EX(
 // Move: if move_sourse!=0 then current is a move operation
 // Mul and Div: if op_mul_and_div!=0 then current is a mul or div operation
 //////////////////////////////////////////////////
-    assign ex_result = move_sourse[2] ? hi_rdata
+    wire inst_mult, inst_multu, inst_div, inst_divu;
+    assign {
+        inst_mult,      // mul with sign
+        inst_multu,     // mul without sign
+        inst_div,       // div with sign
+        inst_divu       // div without sign
+    } = op_mul_and_div;
+
+    assign ex_result =    move_sourse[2] ? hi_rdata
                         : move_sourse[3] ? lo_rdata
                         : alu_result;
     
-    assign hi_result = (move_sourse[0] & hi_we) ? rf_rdata1
+    assign hi_result =    (move_sourse[0] & hi_we) ? rf_rdata1
                         : (move_sourse[1] & hi_we) ? rf_rdata2
-                        : op_mul_and_div[0] ? mul_result[63:32]    // 乘法高位
-                        : op_mul_and_div[1] ? div_result[63:32]    // 除法余数
+                        : (inst_mult | inst_multu) ? mul_result[63:32]    // mul's high 32
+                        : (inst_div  | inst_divu ) ? div_result[63:32]    // div's remain
                         : hi_rdata;
     
-    assign lo_result = (move_sourse[0] & lo_we) ? rf_rdata1
+    assign lo_result =    (move_sourse[0] & lo_we) ? rf_rdata1
                         : (move_sourse[1] & lo_we) ? rf_rdata2
-                        : op_mul_and_div[0] ? mul_result[31:0]    // 乘法低位
-                        : op_mul_and_div[1] ? div_result[31:0]    // 除法商
+                        : (inst_mult | inst_multu) ? mul_result[31:0]    // mul's low 32
+                        : (inst_div  | inst_divu ) ? div_result[31:0]    // div's quotient
                         : hi_rdata;
 //////////////////////////////////////////////////
     
@@ -139,13 +146,6 @@ module EX(
     assign data_sram_wen = (data_ram_wen == 4'b1111) ? 4'b1111:4'b0000;   
     assign data_sram_addr = alu_result;
     assign data_sram_wdata = (data_ram_wen == 4'b1111) ? rf_rdata2:32'b0;
-
-    //
-
-    // stall part start
-    assign stallreq_for_ex = `NoStop;
-
-    // stall part end
 
     assign ex_to_mem_bus = {
         // hilo_reg's
@@ -179,30 +179,68 @@ module EX(
         ex_result       // 31:0
     };
 
+
+// MUL
+//////////////////////////////////////////////////
     // MUL part
-    wire [63:0] mul_result;
-    wire mul_signed; // 有符号乘法标志
+    wire [63:0] mul_result;                 // result
+
+    reg stallreq_for_mul;                   // stallreq_for_mul
 
     mul u_mul(
     	.clk        (clk            ),
         .resetn     (~rst           ),
-        .mul_signed (mul_signed     ),
-        .ina        (               ), // 乘法源操作数1
-        .inb        (               ), // 乘法源操作数2
-        .result     (mul_result     )  // 乘法结果 64bit
+        .mul_signed (inst_mult      ),
+        .ina        (rf_rdata1      ),      // scource 1
+        .inb        (rf_rdata2      ),      // scource 2
+        .result     (mul_result     )       // mul's result is 64bit
     );
 
-    // DIV part
-    wire [63:0] div_result;
-    wire inst_div, inst_divu;
-    wire div_ready_i;
-    reg stallreq_for_div;
-    assign stallreq_for_ex = stallreq_for_div;
+    // MUL's stall
+    reg cnt;
+    reg next_cnt;
+    
+    always @ (posedge clk) begin
+        if (rst) begin
+           cnt <= 1'b0; 
+        end
+        else begin
+           cnt <= next_cnt; 
+        end
+    end
 
+    always @ (*) begin
+        if (rst) begin
+            stallreq_for_mul <= 1'b0;
+            next_cnt <= 1'b0;
+        end
+        else if((inst_mult | inst_multu) & ~cnt) begin
+            stallreq_for_mul <= 1'b1;
+            next_cnt <= 1'b1;
+        end
+        else if((inst_mult | inst_multu) & cnt) begin
+            stallreq_for_mul <= 1'b0;
+            next_cnt <= 1'b0;
+        end
+        else begin
+           stallreq_for_mul <= 1'b0;
+           next_cnt <= 1'b0; 
+        end
+    end 
+//////////////////////////////////////////////////
+
+
+// DIV
+//////////////////////////////////////////////////
+    // DIV part
+    wire div_ready_i;
+    wire [63:0] div_result;                 // result
     reg [31:0] div_opdata1_o;
     reg [31:0] div_opdata2_o;
     reg div_start_o;
     reg signed_div_o;
+
+    reg stallreq_for_div;                   // stallreq_for_mul
 
     div u_div(
     	.rst          (rst              ),
@@ -212,7 +250,7 @@ module EX(
         .opdata2_i    (div_opdata2_o    ),
         .start_i      (div_start_o      ),
         .annul_i      (1'b0             ),
-        .result_o     (div_result       ), // 除法结果 64bit
+        .result_o     (div_result       ), // div's result is 64bit
         .ready_o      (div_ready_i      )
     );
 
@@ -230,7 +268,7 @@ module EX(
             div_opdata2_o = `ZeroWord;
             div_start_o = `DivStop;
             signed_div_o = 1'b0;
-            case ({inst_div,inst_divu})
+            case ({inst_div, inst_divu})
                 2'b10:begin
                     if (div_ready_i == `DivResultNotReady) begin
                         div_opdata1_o = rf_rdata1;
@@ -282,8 +320,12 @@ module EX(
             endcase
         end
     end
+//////////////////////////////////////////////////
 
-    // can directly use "mul_result" and "div_result"
-    
+
+// Stall request to CTRL
+//////////////////////////////////////////////////
+    assign stallreq_for_ex = stallreq_for_mul | stallreq_for_div;
+////////////////////////////////////////////////// 
     
 endmodule

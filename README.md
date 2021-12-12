@@ -70,4 +70,31 @@
     + 类似move移动指令的实现机制，同样在ID中添加2位信号op_mul_and_div。0~1位依次表示操作为乘法、除法。
     + ID_TO_EX_WD再次加2，传递至EX，如果op_mul_and_div不为0，则用相应操作后的div_result或mul_result相应分段更新EX段的hi_result和lo_result。
 
-***但还没有加乘法除法指令，下面需要加上mul除法指令以过pont 44***
+### 12.11：添加了乘法、除法器接入、移动指令，通过point 44~58
+1. 添加了 inst_mult, inst_multu, inst_div , inst_divu 乘法、无符号乘法、除法、无符号除法，指令共4条
+    * 将op_mul_and_div拓宽至4位，0~3依次表示操作为：inst_mult, inst_multu, inst_div , inst_divu
+    * 乘法：
+        * 符号标志：mul_signed = op_mul_and_div[0]（inst_mult指令）
+        * 操作数分别为：rf_rdata1、rf_rdata2
+        * 添加暂停信号：stallreq_for_mul
+    * 除法：
+        * 通过以下代码将现有除法器接入：
+
+                wire inst_div, inst_divu;
+                assign inst_div  = op_mul_and_div[2];
+                assign inst_divu = op_mul_and_div[3];
+
+2. 乘法除法的暂停实现
+    * 将EX向CTRL的暂停信号设为：
+
+            assign stallreq_for_ex = stallreq_for_mul | stallreq_for_div
+    * 添加寄存器cnt, next_cnt实现乘法暂停
+        * 每个时钟周期将cnt <= next_cnt
+        * 如果(inst_mult | inst_multu) & ~cnt，则stallreq_for_mul和next_cnt都为1
+        * 如果(inst_mult | inst_multu) & cnt ，则stallreq_for_mul和next_cnt都为0
+        * 否则，stallreq_for_mul和next_cnt都为0
+
+3. 添加了inst_mfhi, inst_mthi , inst_mtlo移动指令共3条
+    * 如上文“move移动指令的实现机制”所记，在ID段设置以下参数即可实现跳转：
+        * 设置move_sourse以指定数据源
+        * 设置rf_we、hi_we、lo_we以指定目的地

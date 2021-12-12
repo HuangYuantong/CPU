@@ -22,6 +22,7 @@ module ID(
     input wire [`MEM_TO_WB_WD-1:0] mem_to_id_forwarding,    //mem-->id
 
     input wire stall_en    // stall signal from EX
+
     
 );
 
@@ -122,6 +123,7 @@ module ID(
     wire hi_we, lo_we;
     wire [31:0] hi_rdata;
     wire [31:0] lo_rdata;
+    
 
     regfile u_regfile(
     	.clk    (clk    ),
@@ -165,8 +167,9 @@ module ID(
          inst_slt , inst_slti, inst_sltiu, inst_j   , inst_add ,
          inst_addi, inst_sub , inst_and  , inst_andi, inst_nor ,
          inst_xori, inst_sllv, inst_sra  , inst_srav, inst_srl , inst_srlv ,
-         inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr,  // point 37~43
-         inst_div , inst_mlfo;
+         inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr,  // point 37~43, branch
+         inst_mult,inst_multu, inst_div  , inst_divu,    // point 44~58, mul, div and move
+         inst_mflo, inst_mfhi, inst_mthi , inst_mtlo ;
 
     decoder_6_64 u0_decoder_6_64(
     	.in  (opcode  ),
@@ -228,9 +231,15 @@ module ID(
     assign inst_bgezal  = op_d[6'b00_0001] & rt_d[5'b10_001];
     assign inst_bltzal  = op_d[6'b00_0001] & rt_d[5'b10_000];
     assign inst_jalr    = op_d[6'b00_0000] & rt_d[5'b0_0000] & func_d[6'b00_1001];
-    // point 44~, div and move
+    // point 44~58, div and move
     assign inst_div     = op_d[6'b00_0000] & func_d[6'b01_1010];
-    assign inst_mlfo    = op_d[6'b00_0000] & func_d[6'b01_0010];
+    assign inst_divu    = op_d[6'b00_0000] & func_d[6'b01_1011];
+    assign inst_mult    = op_d[6'b00_0000] & func_d[6'b01_1000];
+    assign inst_multu   = op_d[6'b00_0000] & func_d[6'b01_1001];
+    assign inst_mflo    = op_d[6'b00_0000] & func_d[6'b01_0010];
+    assign inst_mfhi    = op_d[6'b00_0000] & func_d[6'b01_0000];
+    assign inst_mthi    = op_d[6'b00_0000] & func_d[6'b01_0001];
+    assign inst_mtlo    = op_d[6'b00_0000] & func_d[6'b01_0011];
 
 //////////////////////////////////////////////////
 
@@ -241,7 +250,8 @@ module ID(
                              inst_lw  | inst_xor   | inst_sltu | inst_sw   | inst_slt |
                              inst_slti| inst_sltiu | inst_add  | inst_addi | inst_sub |
                              inst_and | inst_andi  | inst_nor  | inst_xori | inst_sllv|
-                             inst_srav| inst_srlv  | inst_div;
+                             inst_srav| inst_srlv  | inst_div  | inst_divu | inst_mult|
+                             inst_multu| inst_mthi | inst_mtlo;
 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal | inst_bgezal| inst_bltzal| inst_jalr;
@@ -253,7 +263,7 @@ module ID(
     assign sel_alu_src2[0] = inst_subu | inst_addu | inst_sll | inst_or   | inst_xor |
                               inst_sltu| inst_slt  | inst_add | inst_sub  | inst_and |
                               inst_nor | inst_sllv | inst_sra | inst_srav | inst_srl |
-                              inst_srlv| inst_div;
+                              inst_srlv| inst_div  | inst_divu| inst_mult | inst_multu;
     
     // imm_sign_extend to reg2
     assign sel_alu_src2[1] = inst_lui | inst_addiu | inst_lw | inst_sw | inst_slti |
@@ -293,22 +303,24 @@ module ID(
 // Mul, Div and Move operation
 //////////////////////////////////////////////////
     // Mul and Div
-    wire [1:0] op_mul_and_div;
-    // mul signal
-    assign op_mul_and_div[0] = 1'b0;
-    // div signal
-    assign op_mul_and_div[1] = inst_div;
-    
+    wire [3:0] op_mul_and_div;
+    assign op_mul_and_div={
+        inst_mult,      // mult signal
+        inst_multu,     // multu signal
+        inst_div,       // div signal
+        inst_divu       // divu signal
+    };
+
     // Move
     wire [3:0] move_sourse;
     // rs to move sourse
-    assign move_sourse[0] = 1'b0;
+    assign move_sourse[0] = inst_mthi | inst_mtlo;
     // rd to move sourse
     assign move_sourse[1] = 1'b0;
     // hi to move sourse
-    assign move_sourse[2] = 1'b0;
+    assign move_sourse[2] = inst_mfhi;
     // lo to move sourse
-    assign move_sourse[3] = inst_mlfo;
+    assign move_sourse[3] = inst_mflo;
 //////////////////////////////////////////////////
 
 
@@ -327,13 +339,14 @@ module ID(
                      inst_sltu | inst_slt  | inst_slti  | inst_sltiu| inst_add  |
                      inst_addi | inst_sub  | inst_and   | inst_andi |inst_nor   |
                      inst_xori |inst_sllv  | inst_sra   | inst_srav | inst_srl  |
-                     inst_srlv |inst_bgezal| inst_bltzal| inst_jalr | inst_mlfo ;
+                     inst_srlv |inst_bgezal| inst_bltzal| inst_jalr | inst_mflo |
+                     inst_mfhi;
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_subu   | inst_addu | inst_sll | inst_or   | inst_xor |
                              inst_sltu | inst_slt  | inst_add | inst_sub  | inst_and |
                              inst_nor  | inst_sllv | inst_sra | inst_srav | inst_srl |
-                             inst_srlv | inst_jalr | inst_mlfo;
+                             inst_srlv | inst_jalr | inst_mflo| inst_mfhi;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_ori     | inst_lui  | inst_addiu | inst_lw  | inst_slti |
                              inst_sltiu | inst_addi | inst_andi  | inst_xori;
@@ -349,10 +362,10 @@ module ID(
     assign sel_rf_res = inst_lw ;
 
     // store in hi
-    assign hi_we = inst_div;
+    assign hi_we = inst_div | inst_divu | inst_mult | inst_multu | inst_mthi;
 
     // store in lo
-    assign lo_we = inst_div;
+    assign lo_we = inst_div | inst_divu | inst_mult | inst_multu | inst_mtlo;
 //////////////////////////////////////////////////
 
     
@@ -433,7 +446,7 @@ module ID(
 //////////////////////////////////////////////////
 
     assign id_to_ex_bus = {
-        op_mul_and_div, // 229:230
+        op_mul_and_div, // 229:232
         move_sourse,    // 225:228
         // hilo_reg's
         hi_we,          // 224
