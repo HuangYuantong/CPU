@@ -14,8 +14,9 @@
     * 若是和rt寄存器为同一个（rdata2发生数据相关），则将rdata22赋值为相应的ex/mem_forwarding_wdata（例如subu指令，rt就是第二个源寄存器）
     * 否则 rdata11=rdata1，rdata22=rdata2
 
-### 12.4：~~完成WB段返回至ID段的连线，~~添加多条指令和流水线暂停：
+### 12.4： ~~完成WB段返回至ID段的连线，~~ 添加多条指令和流水线暂停：
 ~~1. 在WB段，ID段和mycou_core.v添加数据相关：wb_to_id_forwarding；~~
+
 2. 添加指令：
     * wire inst_beq, inst_subu, inst_addu
     * wire inst_jal, inst_jr,   inst_sll;
