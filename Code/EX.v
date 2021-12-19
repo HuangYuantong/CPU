@@ -52,26 +52,11 @@ module EX(
     wire sel_rf_res;
     wire [31:0] rf_rdata1, rf_rdata2;
     reg is_in_delayslot;
-<<<<<<< Updated upstream
-
-    // Mul and Div signal
-    wire [3:0] op_mul_and_div;
-    // move operation's source
-    wire [3:0] move_sourse;
-    // helo_reg write enable signal of this cycle
-    wire hi_we, lo_we;
-    wire [31:0] hi_rdata;
-    wire [31:0] lo_rdata;
-
-    assign {
-<<<<<<< HEAD
-=======
-=======
     
     //lw,lb,lbu,lh,lhu
-    wire [4:0] op_mem;
+    wire [4:0] op_load;
     //sw,sb,sh
-    wire [2:0] op_ex;
+    wire [2:0] op_store;
     // Mul and Div signal
     wire [3:0] op_mul_and_div;
     // move operation's source
@@ -82,9 +67,8 @@ module EX(
     wire [31:0] lo_rdata;
 
     assign { 
-        op_ex,          // 238:240
-        op_mem,         // 223:237
->>>>>>> Xsword-yzs
+        op_store,          // 238:240
+        op_load,         // 223:237
         op_mul_and_div, // 229:232
         move_sourse,    // 215:218
         // hilo_reg's
@@ -93,10 +77,6 @@ module EX(
         hi_rdata,       // 181:212
         lo_rdata,       // 149:180
 
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
         ex_pc,          // 148:117
         inst,           // 116:85
         alu_op,         // 84:83
@@ -136,44 +116,6 @@ module EX(
         .alu_result  (alu_result  )
     );
 
-<<<<<<< HEAD
-// Move: if move_sourse!=0 then current is a move operation
-// Mul and Div: if op_mul_and_div!=0 then current is a mul or div operation
-//////////////////////////////////////////////////
-    wire inst_mult, inst_multu, inst_div, inst_divu;
-    assign {
-        inst_mult,      // mul with sign
-        inst_multu,     // mul without sign
-        inst_div,       // div with sign
-        inst_divu       // div without sign
-    } = op_mul_and_div;
-
-    assign ex_result =    move_sourse[2] ? hi_rdata
-                        : move_sourse[3] ? lo_rdata
-                        : alu_result;
-    
-    assign hi_result =    (move_sourse[0] & hi_we) ? rf_rdata1
-                        : (move_sourse[1] & hi_we) ? rf_rdata2
-                        : (inst_mult | inst_multu) ? mul_result[63:32]    // mul's high 32
-                        : (inst_div  | inst_divu ) ? div_result[63:32]    // div's remain
-                        : hi_rdata;
-    
-    assign lo_result =    (move_sourse[0] & lo_we) ? rf_rdata1
-                        : (move_sourse[1] & lo_we) ? rf_rdata2
-                        : (inst_mult | inst_multu) ? mul_result[31:0]    // mul's low 32
-                        : (inst_div  | inst_divu ) ? div_result[31:0]    // div's quotient
-                        : hi_rdata;
-//////////////////////////////////////////////////
-    
-=======
-<<<<<<< Updated upstream
-    assign ex_result = alu_result;
->>>>>>> Xsword-yzs
-
-    // load and store instructions
-    assign stall_en = (inst[31:26]==6'b10_0011)?1'b1:1'b0;   
-
-=======
 // Move: if move_sourse!=0 then current is a move operation
 // Mul and Div: if op_mul_and_div!=0 then current is a mul or div operation
 //////////////////////////////////////////////////
@@ -196,46 +138,25 @@ module EX(
     
 
     // load and store instructions
-    //assign stall_en = (op_mem[0]|op_mem[1]|op_mem[2]|op_mem[3]|op_mem[4])?1'b1:1'b0;
     assign stall_en = (inst[31:26]==6'b10_0011|inst[31:26]==6'b10_0000|inst[31:26]==6'b10_0100|inst[31:26]==6'b10_0001|inst[31:26]==6'b10_0101)?1'b1:1'b0;   
     //inst[31:26]==6'b10_0011|inst[31:26]==6'b10_0000
->>>>>>> Stashed changes
     assign data_sram_en = data_ram_en;
-    assign data_sram_wen =  op_ex[0] ? 4'b1111                                              //inst_sw
-                          :(op_ex[1]&&(alu_result[1:0]==2'b00)) ? 4'b0001                   //inst_sb
-                          :(op_ex[1]&&(alu_result[1:0]==2'b01)) ? 4'b0010
-                          :(op_ex[1]&&(alu_result[1:0]==2'b10)) ? 4'b0100
-                          :(op_ex[1]&&(alu_result[1:0]==2'b11)) ? 4'b1000
-                          :(op_ex[2]&&(alu_result[1:0]==2'b00)) ? 4'b0011                   //inst_sh
-                          :(op_ex[2]&&(alu_result[1:0]==2'b10)) ? 4'b1100
+    assign data_sram_wen =  op_store[0] ? 4'b1111                                              //inst_sw
+                          :(op_store[1]&&(alu_result[1:0]==2'b00)) ? 4'b0001                   //inst_sb
+                          :(op_store[1]&&(alu_result[1:0]==2'b01)) ? 4'b0010
+                          :(op_store[1]&&(alu_result[1:0]==2'b10)) ? 4'b0100
+                          :(op_store[1]&&(alu_result[1:0]==2'b11)) ? 4'b1000
+                          :(op_store[2]&&(alu_result[1:0]==2'b00)) ? 4'b0011                   //inst_sh
+                          :(op_store[2]&&(alu_result[1:0]==2'b10)) ? 4'b1100
                           :4'b0000;  
     assign data_sram_addr = alu_result;                             //address  for loading
-    assign data_sram_wdata = op_ex[0]? rf_rdata2                    //inst_sw
-                            :op_ex[1]?{4{rf_rdata2[7:0]}}           //inst_sb
-                            :op_ex[2]?{2{rf_rdata2[15:0]}}          //inst_sh
+    assign data_sram_wdata = op_store[0]? rf_rdata2                    //inst_sw
+                            :op_store[1]?{4{rf_rdata2[7:0]}}           //inst_sb
+                            :op_store[2]?{2{rf_rdata2[15:0]}}          //inst_sh
                             :32'b0;
 
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-    //
-
-    //stall part start
-    assign stallreq_for_ex = `NoStop;
-
-    //stall part end
-=======
     assign ex_to_mem_bus = {
-        op_mem,         //142:146
-        // hilo_reg's
-        hi_we,          // 141
-        lo_we,          // 140
-        hi_result,      // 108:139
-        lo_result,      // 76:107
->>>>>>> Stashed changes
-
->>>>>>> Xsword-yzs
-    assign ex_to_mem_bus = {
+        op_load,         //142:146
         // hilo_reg's
         hi_we,          // 141
         lo_we,          // 140
@@ -252,22 +173,13 @@ module EX(
     };
 
     assign ex_to_id_forwarding = {
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-        op_mem,         //142:146
->>>>>>> Xsword-yzs
+        op_load,         //142:146
         // hilo_reg's
         hi_we,          // 141
         lo_we,          // 140
         hi_result,      // 108:139
         lo_result,      // 76:107
 
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
         ex_pc,          // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -277,110 +189,122 @@ module EX(
         ex_result       // 31:0
     };
 
-<<<<<<< HEAD
-
-// MUL
-//////////////////////////////////////////////////
-    // MUL part
-    wire [63:0] mul_result;                 // result
-
-    reg stallreq_for_mul;                   // stallreq_for_mul
-=======
-<<<<<<< Updated upstream
-    // MUL part
-    wire [63:0] mul_result;
-    wire mul_signed; // 有符号乘法标�?
-=======
 
 // Mul and Div
+///////////////////////////////////////////////
+    wire mul_ready_i;
+    wire [63:0] mul_result;                 // result
+    reg stallreq_for_mul;                   // stallreq_for_mul
+    reg [31:0] mul_opdata1_o;
+    reg [31:0] mul_opdata2_o;
+    reg mul_start_o;
+    reg signed_mul_o;
+    
+    mul_new u_mul_new(
+    	.rst          (rst              ),
+        .clk          (clk              ),
+        .signed_mul_i (signed_mul_o     ),
+        .opdata1_i    (mul_opdata1_o    ),
+        .opdata2_i    (mul_opdata2_o    ),
+        .start_i      (mul_start_o      ),
+        .annul_i      (1'b0             ),
+        .result_o     (mul_result       ), // mul's result is 64bit
+        .ready_o      (mul_ready_i      )
+    );
+
+    always @ (*) begin
+        if (rst) begin
+            stallreq_for_mul = `NoStop;
+            mul_opdata1_o = `ZeroWord;
+            mul_opdata2_o = `ZeroWord;
+            mul_start_o = `DivStop;
+            signed_mul_o = 1'b0;
+        end
+        else begin
+            stallreq_for_mul = `NoStop;
+            mul_opdata1_o = `ZeroWord;
+            mul_opdata2_o = `ZeroWord;
+            mul_start_o = `DivStop;
+            signed_mul_o = 1'b0;
+            case ({op_mul_and_div[0], op_mul_and_div[1]})
+                2'b10:begin
+                    if (mul_ready_i == `DivResultNotReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `DivStart;
+                        signed_mul_o = 1'b1;
+                        stallreq_for_mul = `Stop;
+                    end
+                    else if (mul_ready_i == `DivResultReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `DivStop;
+                        signed_mul_o = 1'b1;
+                        stallreq_for_mul = `NoStop;
+                    end
+                    else begin
+                        mul_opdata1_o = `ZeroWord;
+                        mul_opdata2_o = `ZeroWord;
+                        mul_start_o = `DivStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                end
+                2'b01:begin
+                    if (mul_ready_i == `DivResultNotReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `DivStart;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `Stop;
+                    end
+                    else if (mul_ready_i == `DivResultReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `DivStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                    else begin
+                        mul_opdata1_o = `ZeroWord;
+                        mul_opdata2_o = `ZeroWord;
+                        mul_start_o = `DivStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                end
+                default:begin
+                end
+            endcase
+        end
+    end
+
+    ///////////////////////////////////////////
 //////////////////////////////////////////////////
     // MUL part
-    wire mul_signed;                        // 1 then mul is negtive
+    /*wire mul_signed;                        // 1 then mul is negtive
     assign mul_signed = op_mul_and_div[0];
 
     wire [63:0] mul_result;                 // result
     reg stallreq_for_mul;                   // stallreq_for_mul
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
 
     mul u_mul(
     	.clk        (clk            ),
         .resetn     (~rst           ),
-<<<<<<< HEAD
-        .mul_signed (inst_mult      ),
-        .ina        (rf_rdata1      ),      // scource 1
-        .inb        (rf_rdata2      ),      // scource 2
-        .result     (mul_result     )       // mul's result is 64bit
-=======
         .mul_signed (mul_signed     ),
-<<<<<<< Updated upstream
-        .ina        (      ), // 乘法源操作数1
-        .inb        (      ), // 乘法源操作数2
-        .result     (mul_result     ) // 乘法结果 64bit
-=======
         .ina        (rf_rdata1      ),      // scource 1
         .inb        (rf_rdata2      ),      // scource 2
         .result     (mul_result     )       // mul's result is 64bit
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
-    );
+    );*/
 
-    // MUL's stall
-    reg cnt;
-    reg next_cnt;
-    
-    always @ (posedge clk) begin
-        if (rst) begin
-           cnt <= 1'b0; 
-        end
-        else begin
-           cnt <= next_cnt; 
-        end
-    end
-
-    always @ (*) begin
-        if (rst) begin
-            stallreq_for_mul <= 1'b0;
-            next_cnt <= 1'b0;
-        end
-        else if((inst_mult | inst_multu) & ~cnt) begin
-            stallreq_for_mul <= 1'b1;
-            next_cnt <= 1'b1;
-        end
-        else if((inst_mult | inst_multu) & cnt) begin
-            stallreq_for_mul <= 1'b0;
-            next_cnt <= 1'b0;
-        end
-        else begin
-           stallreq_for_mul <= 1'b0;
-           next_cnt <= 1'b0; 
-        end
-    end 
-//////////////////////////////////////////////////
-
-
-// DIV
-//////////////////////////////////////////////////
     // DIV part
     wire div_ready_i;
-<<<<<<< HEAD
-    wire [63:0] div_result;                 // result
-=======
-<<<<<<< Updated upstream
-    reg stallreq_for_div;
-    assign stallreq_for_ex = stallreq_for_div;
-
-=======
     wire [63:0] div_result;                 // result
     reg stallreq_for_div;                   // stallreq_for_mul
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
     reg [31:0] div_opdata1_o;
     reg [31:0] div_opdata2_o;
     reg div_start_o;
     reg signed_div_o;
-
-    reg stallreq_for_div;                   // stallreq_for_mul
 
     div u_div(
     	.rst          (rst              ),
@@ -408,15 +332,7 @@ module EX(
             div_opdata2_o = `ZeroWord;
             div_start_o = `DivStop;
             signed_div_o = 1'b0;
-<<<<<<< HEAD
-            case ({inst_div, inst_divu})
-=======
-<<<<<<< Updated upstream
-            case ({inst_div,inst_divu})
-=======
             case ({op_mul_and_div[2], op_mul_and_div[3]})
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
                 2'b10:begin
                     if (div_ready_i == `DivResultNotReady) begin
                         div_opdata1_o = rf_rdata1;
@@ -468,25 +384,11 @@ module EX(
             endcase
         end
     end
-<<<<<<< HEAD
-//////////////////////////////////////////////////
-
-
-// Stall request to CTRL
-//////////////////////////////////////////////////
-    assign stallreq_for_ex = stallreq_for_mul | stallreq_for_div;
-////////////////////////////////////////////////// 
-=======
-<<<<<<< Updated upstream
-
-    // mul_result �? div_result 可以直接使用
-    
-=======
 // can directly use "mul_result" and "div_result"
 
 // Stall for Mul and Div
 //////////////////////////////////////////////////   
-    reg cnt;                 //count for stall mul
+  /*  reg cnt;                 //count for stall mul
     reg next_cnt;
     
     always @ (posedge clk) begin
@@ -515,11 +417,9 @@ module EX(
            stallreq_for_mul <= 1'b0;
            next_cnt <= 1'b0; 
         end
-    end 
+    end */
 
     assign stallreq_for_ex = stallreq_for_div | stallreq_for_mul;
 ////////////////////////////////////////////////// 
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
     
 endmodule

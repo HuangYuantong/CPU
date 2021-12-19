@@ -167,19 +167,6 @@ module ID(
          inst_slt , inst_slti, inst_sltiu, inst_j   , inst_add ,
          inst_addi, inst_sub , inst_and  , inst_andi, inst_nor ,
          inst_xori, inst_sllv, inst_sra  , inst_srav, inst_srl , inst_srlv ,
-<<<<<<< HEAD
-         inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr,  // point 37~43, branch
-         inst_mult,inst_multu, inst_div  , inst_divu,    // point 44~58, mul, div and move
-         inst_mflo, inst_mfhi, inst_mthi , inst_mtlo ;
-=======
-<<<<<<< Updated upstream
-         inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr;
-
-
-    wire op_add, op_sub, op_slt, op_sltu;
-    wire op_and, op_nor, op_or, op_xor;
-    wire op_sll, op_srl, op_sra, op_lui;
-=======
          // point 37~43, branch
          inst_bgez, inst_bgtz, inst_blez , inst_bltz, inst_bgezal, inst_bltzal, inst_jalr,
          // point 44~58, div and move
@@ -188,8 +175,6 @@ module ID(
          inst_lb,   inst_lbu  , inst_lh  , inst_lhu  ,
          inst_sb,   inst_sh;
 
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
 
     decoder_6_64 u0_decoder_6_64(
     	.in  (opcode  ),
@@ -250,12 +235,6 @@ module ID(
     assign inst_bltz    = op_d[6'b00_0001] & rt_d[5'b0_0000];
     assign inst_bgezal  = op_d[6'b00_0001] & rt_d[5'b10_001];
     assign inst_bltzal  = op_d[6'b00_0001] & rt_d[5'b10_000];
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-    assign inst_jalr    = op_d[6'b00_0000] & func_d[6'b00_1001];
-=======
->>>>>>> Xsword-yzs
     assign inst_jalr    = op_d[6'b00_0000] & rt_d[5'b0_0000] & func_d[6'b00_1001];
     // point 44~58, div and move
     assign inst_div     = op_d[6'b00_0000] & func_d[6'b01_1010];
@@ -266,8 +245,6 @@ module ID(
     assign inst_mfhi    = op_d[6'b00_0000] & func_d[6'b01_0000];
     assign inst_mthi    = op_d[6'b00_0000] & func_d[6'b01_0001];
     assign inst_mtlo    = op_d[6'b00_0000] & func_d[6'b01_0011];
-<<<<<<< HEAD
-=======
     //point 59~  , l and s
     assign inst_lb      = op_d[6'b10_0000];
     assign inst_lbu     = op_d[6'b10_0100];
@@ -275,8 +252,6 @@ module ID(
     assign inst_lhu     = op_d[6'b10_0101];
     assign inst_sb      = op_d[6'b10_1000];
     assign inst_sh      = op_d[6'b10_1001];
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
 
 //////////////////////////////////////////////////
 
@@ -287,18 +262,9 @@ module ID(
                              inst_lw  | inst_xor   | inst_sltu | inst_sw   | inst_slt |
                              inst_slti| inst_sltiu | inst_add  | inst_addi | inst_sub |
                              inst_and | inst_andi  | inst_nor  | inst_xori | inst_sllv|
-<<<<<<< HEAD
-                             inst_srav| inst_srlv  | inst_div  | inst_divu | inst_mult|
-                             inst_multu| inst_mthi | inst_mtlo;
-=======
-<<<<<<< Updated upstream
-                             inst_srav| inst_srlv;
-=======
                              inst_srav| inst_srlv  | inst_div  | inst_divu | inst_mult|
                              inst_multu| inst_mthi | inst_mtlo | inst_lb   | inst_lbu |
                              inst_lh  | inst_lhu   | inst_sb   | inst_sh;
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal | inst_bgezal| inst_bltzal| inst_jalr;
@@ -350,42 +316,6 @@ module ID(
 //////////////////////////////////////////////////
 
 
-<<<<<<< HEAD
-// Mul, Div and Move operation
-//////////////////////////////////////////////////
-    // Mul and Div
-    wire [3:0] op_mul_and_div;
-    assign op_mul_and_div={
-        inst_mult,      // mult signal
-        inst_multu,     // multu signal
-        inst_div,       // div signal
-        inst_divu       // divu signal
-    };
-
-    // Move
-    wire [3:0] move_sourse;
-    // rs to move sourse
-    assign move_sourse[0] = inst_mthi | inst_mtlo;
-    // rd to move sourse
-    assign move_sourse[1] = 1'b0;
-    // hi to move sourse
-    assign move_sourse[2] = inst_mfhi;
-    // lo to move sourse
-    assign move_sourse[3] = inst_mflo;
-//////////////////////////////////////////////////
-
-
-=======
-<<<<<<< Updated upstream
->>>>>>> Xsword-yzs
-// MEM preparation
-//////////////////////////////////////////////////
-    // RAM load and store enable
-    assign data_ram_en = inst_lw | inst_sw;   
-
-    // RAM write enable
-    assign data_ram_wen =  inst_sw? 4'b1111
-=======
 // Mul, Div and Move operation
 //////////////////////////////////////////////////
     // Mul and Div
@@ -411,21 +341,21 @@ module ID(
     assign move_sourse[3] = inst_mflo;
 //////////////////////////////////////////////////
 
-//lw,lb,lbu,lh,lhu
+//lw,lb,lbu,lh,lhu   to mem
 /////////////////////////////////////////////////
-wire [4:0] op_mem;
-assign op_mem[0]=inst_lw;
-assign op_mem[1]=inst_lb;
-assign op_mem[2]=inst_lbu;
-assign op_mem[3]=inst_lh;
-assign op_mem[4]=inst_lhu;
+wire [4:0] op_load;
+assign op_load[0]=inst_lw;
+assign op_load[1]=inst_lb;
+assign op_load[2]=inst_lbu;
+assign op_load[3]=inst_lh;
+assign op_load[4]=inst_lhu;
 ////////////////////////////////////////////////
-//sw,sb,sh
+//sw,sb,sh    to ex
 ///////////////////////////////////////////////
-wire [2:0] op_ex;
-assign op_ex[0]=inst_sw;
-assign op_ex[1]=inst_sb;
-assign op_ex[2]=inst_sh;
+wire [2:0] op_store;
+assign op_store[0]=inst_sw;
+assign op_store[1]=inst_sb;
+assign op_store[2]=inst_sh;
 //////////////////////////////////////////////
 // MEM preparation
 //////////////////////////////////////////////////
@@ -434,7 +364,6 @@ assign op_ex[2]=inst_sh;
 
     // RAM write enable
     assign data_ram_wen =  ( inst_sw | inst_sb | inst_sh )? 4'b1111
->>>>>>> Stashed changes
                          : 4'b0000; 
 
     // regfile store enable
@@ -443,17 +372,8 @@ assign op_ex[2]=inst_sh;
                      inst_sltu | inst_slt  | inst_slti  | inst_sltiu| inst_add  |
                      inst_addi | inst_sub  | inst_and   | inst_andi |inst_nor   |
                      inst_xori |inst_sllv  | inst_sra   | inst_srav | inst_srl  |
-<<<<<<< HEAD
-                     inst_srlv |inst_bgezal| inst_bltzal| inst_jalr | inst_mflo |
-                     inst_mfhi;
-=======
-<<<<<<< Updated upstream
-                     inst_srlv |inst_bgezal| inst_bltzal| inst_jalr;
-=======
                      inst_srlv |inst_bgezal| inst_bltzal| inst_jalr | inst_mflo |
                      inst_mfhi | inst_lb   | inst_lbu   | inst_lh   | inst_lhu;
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_subu   | inst_addu | inst_sll | inst_or   | inst_xor |
@@ -473,38 +393,6 @@ assign op_ex[2]=inst_sh;
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
-<<<<<<< Updated upstream
-    assign sel_rf_res = inst_lw ;
-
-    // store in hi
-    assign hi_we = inst_div | inst_divu | inst_mult | inst_multu | inst_mthi;
-
-    // store in lo
-    assign lo_we = inst_div | inst_divu | inst_mult | inst_multu | inst_mtlo;
-//////////////////////////////////////////////////
-
-    
-
-<<<<<<< HEAD
-// forwarding
-//////////////////////////////////////////////////
-=======
-    //data correlation start
-    // we just use six of these variables, maybe after we will use the others
-    //ex_to_id_forwarding
-    wire [31:0] ex_forwarding_ex_pc;
-    wire ex_forwarding_data_ram_en;
-    wire [3:0] ex_forwarding_data_ram_wen;
-    wire ex_forwarding_sel_rf_res;
-    wire ex_forwarding_we;             //main use
-    wire [4:0] ex_forwarding_waddr;    //main use
-    wire [31:0] ex_forwarding_result;     //main use
-    //mem_to_id_forwarding
-    wire [31:0] mem_forwarding_mem_pc;
-    wire mem_forwarding_we;                //main use
-    wire [4:0] mem_forwarding_waddr;   //main use
-    wire [31:0] mem_forwarding_wdata;  //main use
-=======
     assign sel_rf_res = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu;
 
     // store in hi
@@ -518,8 +406,7 @@ assign op_ex[2]=inst_sh;
 
 // forwarding
 //////////////////////////////////////////////////
-    wire [4:0] forwarding_op_mem;
->>>>>>> Xsword-yzs
+    wire [4:0] forwarding_op_load;
     wire forwarding_ex_hi_we;
     wire forwarding_ex_lo_we;
     wire [31:0] forwarding_ex_hi_result;
@@ -540,29 +427,13 @@ assign op_ex[2]=inst_sh;
     wire forwarding_mem_rf_we;            // MEM needs to write
     wire [4:0] forwarding_mem_rf_waddr;   // MEM's writing address
     wire [31:0] forwarding_mem_rf_wdata;  // MEM's writing value
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
 
     
     wire [31:0] selected_rdata1, selected_rdata2;
     wire [31:0] selected_hi_rdata, selected_lo_rdata;
 
     assign {
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-        ex_forwarding_ex_pc,          // 75:44
-        ex_forwarding_data_ram_en,    // 43
-        ex_forwarding_data_ram_wen,   // 42:39
-        ex_forwarding_sel_rf_res,     // 38
-        ex_forwarding_we,          // 37
-        ex_forwarding_waddr,       // 36:32
-        ex_forwarding_result       // 31:0
-=======
-        forwarding_op_mem,
->>>>>>> Xsword-yzs
+        forwarding_op_load,
         forwarding_ex_hi_we,
         forwarding_ex_lo_we,
         forwarding_ex_hi_result,
@@ -574,10 +445,6 @@ assign op_ex[2]=inst_sh;
         forwarding_ex_rf_we,        // 37
         forwarding_ex_rf_waddr,     // 36:32
         forwarding_ex_result        // 31:0
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
     } = ex_to_id_forwarding;
 
     assign {
@@ -615,13 +482,8 @@ assign op_ex[2]=inst_sh;
 //////////////////////////////////////////////////
 
     assign id_to_ex_bus = {
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
-        op_ex,          // 238:240
-        op_mem,         // 233:237
->>>>>>> Xsword-yzs
+        op_store,          // 238:240
+        op_load,         // 233:237
         op_mul_and_div, // 229:232
         move_sourse,    // 225:228
         // hilo_reg's
@@ -630,10 +492,6 @@ assign op_ex[2]=inst_sh;
         selected_hi_rdata,// 191:222
         selected_lo_rdata,// 159:190
 
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> Xsword-yzs
         id_pc,          // 158:127
         inst,           // 126:95
         alu_op,         // 94:83
