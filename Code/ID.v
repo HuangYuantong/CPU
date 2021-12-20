@@ -101,6 +101,7 @@ module ID(
     wire [4:0] base;
     wire [15:0] offset;
     wire [2:0] sel;
+    wire [1:0] sa_lsa; 
 
     wire [63:0] op_d, func_d;
     wire [31:0] rs_d, rt_d, rd_d, sa_d;
@@ -158,6 +159,8 @@ module ID(
     assign base = inst[25:21];
     assign offset = inst[15:0];
     assign sel = inst[2:0];
+    assign sa_lsa=inst[7:6];
+
 
 // operation declare
 //////////////////////////////////////////////////
@@ -173,7 +176,7 @@ module ID(
          inst_div , inst_divu , inst_mult, inst_multu,
          inst_mflo, inst_mfhi , inst_mthi, inst_mtlo ,
          inst_lb,   inst_lbu  , inst_lh  , inst_lhu  ,
-         inst_sb,   inst_sh;
+         inst_sb,   inst_sh   , inst_lsa;
 
 
     decoder_6_64 u0_decoder_6_64(
@@ -252,6 +255,8 @@ module ID(
     assign inst_lhu     = op_d[6'b10_0101];
     assign inst_sb      = op_d[6'b10_1000];
     assign inst_sh      = op_d[6'b10_1001];
+    //test
+    assign inst_lsa     = op_d[6'b01_1100]& func_d[6'b11_0111];
 
 //////////////////////////////////////////////////
 
@@ -264,7 +269,7 @@ module ID(
                              inst_and | inst_andi  | inst_nor  | inst_xori | inst_sllv|
                              inst_srav| inst_srlv  | inst_div  | inst_divu | inst_mult|
                              inst_multu| inst_mthi | inst_mtlo | inst_lb   | inst_lbu |
-                             inst_lh  | inst_lhu   | inst_sb   | inst_sh;
+                             inst_lh  | inst_lhu   | inst_sb   | inst_sh   | inst_lsa;
 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal | inst_bgezal| inst_bltzal| inst_jalr;
@@ -276,7 +281,8 @@ module ID(
     assign sel_alu_src2[0] = inst_subu | inst_addu | inst_sll | inst_or   | inst_xor |
                               inst_sltu| inst_slt  | inst_add | inst_sub  | inst_and |
                               inst_nor | inst_sllv | inst_sra | inst_srav | inst_srl |
-                              inst_srlv| inst_div  | inst_divu| inst_mult | inst_multu;
+                              inst_srlv| inst_div  | inst_divu| inst_mult | inst_multu|
+                              inst_lsa;
     
     // imm_sign_extend to reg2
     assign sel_alu_src2[1] = inst_lui | inst_addiu | inst_lw | inst_sw | inst_slti |
@@ -297,7 +303,7 @@ module ID(
     assign op_add  = inst_addiu | inst_addu | inst_jal   | inst_lw    | inst_sw   |
                      inst_add   | inst_addi | inst_bgezal| inst_bltzal| inst_jalr |
                      inst_lb    | inst_lbu  | inst_lh    | inst_lhu   | inst_sb   |
-                     inst_sh;
+                     inst_sh    | inst_lsa;
     assign op_sub  = inst_subu  | inst_sub;
     assign op_slt  = inst_slt   | inst_slti;
     assign op_sltu = inst_sltu  | inst_sltiu;
@@ -373,13 +379,14 @@ assign op_store[2]=inst_sh;
                      inst_addi | inst_sub  | inst_and   | inst_andi |inst_nor   |
                      inst_xori |inst_sllv  | inst_sra   | inst_srav | inst_srl  |
                      inst_srlv |inst_bgezal| inst_bltzal| inst_jalr | inst_mflo |
-                     inst_mfhi | inst_lb   | inst_lbu   | inst_lh   | inst_lhu;
+                     inst_mfhi | inst_lb   | inst_lbu   | inst_lh   | inst_lhu  |
+                     inst_lsa;
 
     // store in [rd]
     assign sel_rf_dst[0] = inst_subu   | inst_addu | inst_sll | inst_or   | inst_xor |
                              inst_sltu | inst_slt  | inst_add | inst_sub  | inst_and |
                              inst_nor  | inst_sllv | inst_sra | inst_srav | inst_srl |
-                             inst_srlv | inst_jalr | inst_mflo| inst_mfhi;
+                             inst_srlv | inst_jalr | inst_mflo| inst_mfhi | inst_lsa;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_ori     | inst_lui  | inst_addiu | inst_lw  | inst_slti |
                              inst_sltiu | inst_addi | inst_andi  | inst_xori| inst_lb   |
@@ -427,6 +434,8 @@ assign op_store[2]=inst_sh;
     wire forwarding_mem_rf_we;            // MEM needs to write
     wire [4:0] forwarding_mem_rf_waddr;   // MEM's writing address
     wire [31:0] forwarding_mem_rf_wdata;  // MEM's writing value
+    wire [31:0] sa_data1;
+    wire [31:0] sa_data11;
 
     
     wire [31:0] selected_rdata1, selected_rdata2;
@@ -458,10 +467,12 @@ assign op_store[2]=inst_sh;
         forwarding_mem_rf_wdata     //31:0
     } = mem_to_id_forwarding;
 
-
+    assign sa_data1= rdata1<<sa_lsa;
+    assign sa_data11 = sa_data1<<2'b01;
     assign selected_rdata1 = (forwarding_ex_rf_we & (forwarding_ex_rf_waddr == rs)) ? forwarding_ex_result
                             : (forwarding_mem_rf_we & (forwarding_mem_rf_waddr == rs)) ? forwarding_mem_rf_wdata
                             : (wb_rf_we & (wb_rf_waddr == rs)) ? wb_rf_wdata
+                            : inst_lsa ? sa_data11
                             : rdata1;
 
     assign selected_rdata2 = (forwarding_ex_rf_we & (forwarding_ex_rf_waddr == rt)) ? forwarding_ex_result
@@ -529,7 +540,7 @@ assign op_store[2]=inst_sh;
     assign rs_lt_z   = (selected_rdata1[31]);   // rs<0: 1 then <0
 
 
-    assign br_e = (inst_beq & rs_eq_rt)    | inst_jal   | inst_jr   | (inst_bne & (~rs_eq_rt)) | inst_j |
+    assign br_e =   (inst_beq & rs_eq_rt)  | inst_jal   | inst_jr   | (inst_bne & (~rs_eq_rt)) | inst_j |
                     (inst_bgez & rs_ge_z)  | (inst_bgtz & rs_gt_z)  | (inst_blez & rs_le_z) | (inst_bltz & rs_lt_z) |
                     (inst_bgezal & rs_ge_z)| (inst_bltzal & rs_lt_z)| inst_jalr;
 

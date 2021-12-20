@@ -217,58 +217,58 @@ module EX(
             stallreq_for_mul = `NoStop;
             mul_opdata1_o = `ZeroWord;
             mul_opdata2_o = `ZeroWord;
-            mul_start_o = `DivStop;
+            mul_start_o = `MulStop;
             signed_mul_o = 1'b0;
         end
         else begin
             stallreq_for_mul = `NoStop;
             mul_opdata1_o = `ZeroWord;
             mul_opdata2_o = `ZeroWord;
-            mul_start_o = `DivStop;
+            mul_start_o = `MulStop;
             signed_mul_o = 1'b0;
             case ({op_mul_and_div[0], op_mul_and_div[1]})
                 2'b10:begin
-                    if (mul_ready_i == `DivResultNotReady) begin
+                    if (mul_ready_i == `MulResultNotReady) begin
                         mul_opdata1_o = rf_rdata1;
                         mul_opdata2_o = rf_rdata2;
-                        mul_start_o = `DivStart;
+                        mul_start_o = `MulStart;
                         signed_mul_o = 1'b1;
                         stallreq_for_mul = `Stop;
                     end
-                    else if (mul_ready_i == `DivResultReady) begin
+                    else if (mul_ready_i == `MulResultReady) begin
                         mul_opdata1_o = rf_rdata1;
                         mul_opdata2_o = rf_rdata2;
-                        mul_start_o = `DivStop;
+                        mul_start_o = `MulStop;
                         signed_mul_o = 1'b1;
                         stallreq_for_mul = `NoStop;
                     end
                     else begin
                         mul_opdata1_o = `ZeroWord;
                         mul_opdata2_o = `ZeroWord;
-                        mul_start_o = `DivStop;
+                        mul_start_o = `MulStop;
                         signed_mul_o = 1'b0;
                         stallreq_for_mul = `NoStop;
                     end
                 end
                 2'b01:begin
-                    if (mul_ready_i == `DivResultNotReady) begin
+                    if (mul_ready_i == `MulResultNotReady) begin
                         mul_opdata1_o = rf_rdata1;
                         mul_opdata2_o = rf_rdata2;
-                        mul_start_o = `DivStart;
+                        mul_start_o = `MulStart;
                         signed_mul_o = 1'b0;
                         stallreq_for_mul = `Stop;
                     end
-                    else if (mul_ready_i == `DivResultReady) begin
+                    else if (mul_ready_i == `MulResultReady) begin
                         mul_opdata1_o = rf_rdata1;
                         mul_opdata2_o = rf_rdata2;
-                        mul_start_o = `DivStop;
+                        mul_start_o = `MulStop;
                         signed_mul_o = 1'b0;
                         stallreq_for_mul = `NoStop;
                     end
                     else begin
                         mul_opdata1_o = `ZeroWord;
                         mul_opdata2_o = `ZeroWord;
-                        mul_start_o = `DivStop;
+                        mul_start_o = `MulStop;
                         signed_mul_o = 1'b0;
                         stallreq_for_mul = `NoStop;
                     end
@@ -388,7 +388,7 @@ module EX(
 
 // Stall for Mul and Div
 //////////////////////////////////////////////////   
-  /*  reg cnt;                 //count for stall mul
+   /* reg cnt;                 //count for stall mul
     reg next_cnt;
     
     always @ (posedge clk) begin

@@ -35,13 +35,13 @@ module MUL(
 	
 
 	reg [5:0] cnt;							//记录乘加法进行了几轮
-	reg[64:0] multdend;						//中间计算结果
+	reg[63:0] multdend;						//中间计算结果
 	reg [1:0] state;						//乘法器处于的状态	
 	reg[31:0] temp_op1;
 	reg[31:0] temp_op2;
-	wire [63:0] mul_add;            //中间乘数分解得到的加法数
+	wire [63:0] mul_add;                    //中间乘数分解得到的加法数
     reg  [31:0] mul_y;                      //乘数，运算时每次右移一位
-    reg  [63:0] mul_x;                //加载被乘数，运算时每次左移一位
+    reg  [63:0] mul_x;                      //加载被乘数，运算时每次左移一位
 	assign mul_add = mul_y[0] ? mul_x : {`ZeroWord, `ZeroWord} ;
 	
 	always @ (posedge clk) begin
@@ -59,12 +59,12 @@ module MUL(
 						end else begin
 							state <= `MulOn;					//数不为0
 							cnt <= 6'b000000;
-							if(signed_mul_i == 1'b1 && opdata1_i[31] == 1'b1) begin			//乘数为负数
+							if(signed_mul_i == 1'b1 && opdata1_i[31] == 1'b1) begin			//被乘数为负数
 								temp_op1 = ~opdata1_i + 1;
 							end else begin
 								temp_op1 = opdata1_i;
 							end
-							if (signed_mul_i == 1'b1 && opdata2_i[31] == 1'b1 ) begin			//被乘数为负数
+							if (signed_mul_i == 1'b1 && opdata2_i[31] == 1'b1 ) begin			//乘数为负数
 								temp_op2 = ~opdata2_i + 1;
 							end else begin
 								temp_op2 = opdata2_i;
@@ -92,7 +92,7 @@ module MUL(
                             multdend <= multdend + mul_add;//中间结果加上加法数
 							cnt <= cnt +1;		//乘加法运算次数
 						end	else begin
-							if ((signed_mul_i == 1'b1) && ((opdata1_i[31] ^ opdata2_i[31]) == 1'b1)) begin  //乘法中有一个负数
+							if ((signed_mul_i == 1'b1) && ((opdata1_i[31] ^ opdata2_i[31]) == 1'b1)) begin  //乘法中有负数
 								multdend <= (~multdend + 1);
 							end
 							state <= `MulEnd;

@@ -24,7 +24,7 @@
 `define DivStart 1'b1
 `define DivStop 1'b0
 // 2021-11-29 add
-//div
+//mul
 `define MulFree 2'b00
 `define MulByZero 2'b01
 `define MulOn 2'b10
